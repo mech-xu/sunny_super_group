@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-financial-navy text-slate-200 font-sans;
+  margin: 0;
+  padding: 0;
+}
