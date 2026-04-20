@@ -1,0 +1,161 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "SunnyNow团购",
+        "enablePullDownRefresh": true,
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/category",
+      "style": {
+        "navigationBarTitleText": "商品分类",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/cart",
+      "style": {
+        "navigationBarTitleText": "购物车",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/register",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "pages/goods",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "商品详情",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "groupon",
+          "style": {
+            "navigationBarTitleText": "团购商品",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "list",
+          "style": {
+            "navigationBarTitleText": "商品列表",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/order",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "我的订单",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "订单详情",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "create",
+          "style": {
+            "navigationBarTitleText": "创建订单",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/user",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "个人中心",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "profile",
+          "style": {
+            "navigationBarTitleText": "个人信息",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "SunnyNow团购",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#666666",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/images/tabbar/home.png",
+        "selectedIconPath": "static/images/tabbar/home-active.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/index/category",
+        "iconPath": "static/images/tabbar/category.png",
+        "selectedIconPath": "static/images/tabbar/category-active.png",
+        "text": "分类"
+      },
+      {
+        "pagePath": "pages/index/cart",
+        "iconPath": "static/images/tabbar/cart.png",
+        "selectedIconPath": "static/images/tabbar/cart-active.png",
+        "text": "购物车"
+      },
+      {
+        "pagePath": "pages/user/index",
+        "iconPath": "static/images/tabbar/user.png",
+        "selectedIconPath": "static/images/tabbar/user-active.png",
+        "text": "我的"
+      }
+    ]
+  },
+  "condition": {
+    "current": 0,
+    "list": [
+      {
+        "name": "首页",
+        "path": "pages/index/index",
+        "query": ""
+      }
+    ]
+  }
+}

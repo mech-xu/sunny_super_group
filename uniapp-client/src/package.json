@@ -1,0 +1,45 @@
+{
+  "id": "sunnynow-groupbuy",
+  "name": "sunnynow-groupbuy",
+  "displayName": "SunnyNow团购",
+  "version": "1.0.0",
+  "description": "SunnyNow团购自提系统，专为加拿大华人社区设计",
+  "scripts": {
+    "dev:app": "uni -p app",
+    "dev:h5": "uni -p h5",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:app": "uni build -p app",
+    "build:h5": "uni build -p h5",
+    "build:mp-weixin": "uni build -p mp-weixin"
+  },
+  "repository": "",
+  "keywords": [
+    "团购",
+    "自提",
+    "加拿大",
+    "华人社区"
+  ],
+  "author": "SunnyNow Team",
+  "license": "MIT",
+  "type": "module",
+  "uni-app": {
+    "scripts": {}
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-3090820231225001",
+    "@dcloudio/uni-ui": "^1.4.28",
+    "@dcloudio/uni-components": "3.0.0-3090820231225001",
+    "vue": "3.4.21",
+    "pinia": "^2.0.24",
+    "luch-request": "^3.0.8",
+    "dayjs": "^1.11.6"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.8",
+    "@dcloudio/uni-automator": "3.0.0-3090820231225001",
+    "@dcloudio/uni-cli-shared": "3.0.0-3090820231225001",
+    "@dcloudio/vite-builder": "3.0.0-3090820231225001",
+    "@vue/shared": "^3.4.21",
+    "vite": "5.2.0"
+  }
+}

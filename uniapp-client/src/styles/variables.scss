@@ -1,0 +1,50 @@
+/* ====== 颜色变量 ====== */
+$primary-color: #07c160; // 主色调 - 绿色
+$warning-color: #ff9900; // 警告色 - 橙色
+$danger-color: #e4393c;  // 危险色 - 红色
+$success-color: #07c160; // 成功色 - 绿色
+$info-color: #1989fa;    // 信息色 - 蓝色
+
+$text-color: #333333;    // 主要文字颜色
+$text-color-secondary: #666666; // 次要文字颜色
+$text-color-placeholder: #999999; // 占位文字颜色
+$text-color-disabled: #cccccc; // 禁用文字颜色
+
+$border-color: #eeeeee;   // 边框颜色
+$background-color: #f5f5f5; // 背景色
+
+/* ====== 字体大小 ====== */
+$font-size-xs: 20rpx;    // 超小字体
+$font-size-sm: 24rpx;    // 小字体
+$font-size-md: 28rpx;    // 中等字体
+$font-size-lg: 32rpx;    // 大字体
+$font-size-xl: 36rpx;    // 超大字体
+$font-size-xxl: 40rpx;   // 超大大字体
+
+/* ====== 间距 ====== */
+$spacing-xs: 10rpx;      // 超小间距
+$spacing-sm: 20rpx;      // 小间距
+$spacing-md: 30rpx;      // 中等间距
+$spacing-lg: 40rpx;      // 大间距
+$spacing-xl: 50rpx;      // 超大间距
+
+/* ====== 圆角 ====== */
+$radius-xs: 4rpx;        // 超小圆角
+$radius-sm: 8rpx;        // 小圆角
+$radius-md: 12rpx;       // 中等圆角
+$radius-lg: 16rpx;       // 大圆角
+$radius-round: 50%;      // 圆形
+
+/* ====== 阴影 ====== */
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+
+/* ====== 边框 ====== */
+$border-width: 1rpx;
+$border-style: solid;
+$border: $border-width $border-style $border-color;
+
+/* ====== 动画 ====== */
+$transition-duration: 0.3s;
+$transition-timing-function: ease;

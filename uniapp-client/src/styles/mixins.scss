@@ -1,0 +1,173 @@
+/* ====== Flex布局混合宏 ====== */
+
+// 水平垂直居中
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 水平居中
+@mixin flex-center-x {
+  display: flex;
+  justify-content: center;
+}
+
+// 垂直居中
+@mixin flex-center-y {
+  display: flex;
+  align-items: center;
+}
+
+// 水平两端对齐
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+// 水平平均分布
+@mixin flex-around {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+// 水平等距分布
+@mixin flex-evenly {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+// 水平等宽分布
+@mixin flex-equal {
+  display: flex;
+  > * {
+    flex: 1;
+  }
+}
+
+/* ====== 文字处理混合宏 ====== */
+
+// 单行省略号
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 多行省略号
+@mixin text-ellipsis-multi($line: 2) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $line;
+  overflow: hidden;
+}
+
+/* ====== 边框混合宏 ====== */
+
+// 上边框
+@mixin border-top($color: $border-color, $width: $border-width) {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    border-top: $width solid $color;
+    transform: scaleY(0.5);
+  }
+}
+
+// 下边框
+@mixin border-bottom($color: $border-color, $width: $border-width) {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-bottom: $width solid $color;
+    transform: scaleY(0.5);
+  }
+}
+
+// 左边框
+@mixin border-left($color: $border-color, $width: $border-width) {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    border-left: $width solid $color;
+    transform: scaleX(0.5);
+  }
+}
+
+// 右边框
+@mixin border-right($color: $border-color, $width: $border-width) {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-right: $width solid $color;
+    transform: scaleX(0.5);
+  }
+}
+
+// 四周边框
+@mixin border-all($color: $border-color, $width: $border-width) {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    border: $width solid $color;
+    transform: scale(0.5);
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+}
+
+/* ====== 背景混合宏 ====== */
+
+// 渐变背景
+@mixin gradient-bg($start: #07c160, $end: #38e08e) {
+  background: linear-gradient(to right, $start, $end);
+}
+
+// 按钮渐变背景
+@mixin button-gradient($start: #07c160, $end: #38e08e) {
+  background: linear-gradient(to right, $start, $end);
+  border: none;
+  color: #fff;
+}
+
+/* ====== 阴影混合宏 ====== */
+@mixin shadow-inset {
+  box-shadow: inset 0 0 6rpx rgba(0, 0, 0, 0.1);
+}
+
+/* ====== 圆形混合宏 ====== */
+@mixin circle($size) {
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+}
+
+/* ====== 正方形混合宏 ====== */
+@mixin square($size) {
+  width: $size;
+  height: $size;
+}

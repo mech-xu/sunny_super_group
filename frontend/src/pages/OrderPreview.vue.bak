@@ -1,0 +1,403 @@
+<template>
+  <div class="order-preview-container iphone-14-container">
+    <div class="iphone-frame">
+      <div class="notch"></div>
+      
+      <div class="page-content">
+        <header class="page-header">
+          <h1>订单预览</h1>
+          <p>请核对您的订单信息</p>
+        </header>
+        
+        <div class="order-summary">
+          <h3>订单详情</h3>
+          <div class="order-items">
+            <div 
+              v-for="item in filteredOrderItems" 
+              :key="item.productId" 
+              class="order-item"
+            >
+              <div class="item-info">
+                <h4>{{ item.productName }}</h4>
+                <p>单价: ¥{{ item.price }}</p>
+                <div class="quantity-controls">
+                  <label>数量:</label>
+                  <input 
+                    type="number" 
+                    :value="item.quantity" 
+                    @change="updateQuantity(item.productId, $event.target.value)"
+                    min="1"
+                    :max="item.maxStock"
+                  />
+                </div>
+                <p>小计: ¥{{ item.subtotal }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="order-total">
+            <p>商品总额: <span>¥{{ subtotalAmount }}</span></p>
+            <p>运费: <span>+ ¥{{ shippingCost }}</span></p>
+            <p>优惠: <span>- ¥{{ discount }}</span></p>
+            <p class="final-total">实付金额: <strong>¥{{ finalTotalAmount }}</strong></p>
+          </div>
+        </div>
+        
+        <div class="order-user-info">
+          <h3>收货信息</h3>
+          <div class="user-details">
+            <p><strong>客户姓名:</strong> {{ user.nickname }}</p>
+            <p><strong>联系电话:</strong> {{ user.phone }}</p>
+            <div class="address-input">
+              <label>收货地址:</label>
+              <input 
+                type="text" 
+                v-model="deliveryAddress" 
+                placeholder="请输入收货地址"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div class="order-notes">
+          <h3>订单备注</h3>
+          <textarea 
+            v-model="orderNotes" 
+            placeholder="请输入订单备注..."
+            rows="3"
+          ></textarea>
+        </div>
+        
+        <div class="order-actions">
+          <button @click="confirmOrder" class="confirm-order-btn">确认下单</button>
+          <button @click="backToProducts" class="back-btn">返回修改</button>
+        </div>
+      </div>
+      
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+
+// 使用ref定义响应式数据
+const orderItems = ref([]);
+const originalTotalAmount = ref(0);
+const user = ref({});
+const deliveryAddress = ref('');
+const orderNotes = ref('');
+
+// 获取路由实例和路由参数
+const router = useRouter();
+const route = useRoute();
+
+// 订单费用相关
+const shippingCost = ref(5.00);
+const discount = ref(2.00);
+
+onMounted(() => {
+  // 从路由参数获取订单数据
+  if (route.query.orderData) {
+    try {
+      const orderData = JSON.parse(route.query.orderData);
+      // 只保留cartGoodsFlag为1的商品（已加入购物车）
+      orderItems.value = orderData.cartItems.filter(item => item.cartGoodsFlag !== 0);
+      originalTotalAmount.value = orderData.totalAmount;
+      user.value = orderData.user;
+    } catch (error) {
+      console.error('解析订单数据失败:', error);
+      // 如果无法解析数据，重定向回产品页面
+      router.push('/products');
+    }
+  } else {
+    // 如果没有订单数据，重定向回产品页面
+    router.push('/products');
+  }
+});
+
+// 过滤出cartGoodsFlag为1的商品（已加入购物车）
+const filteredOrderItems = computed(() => {
+  return orderItems.value.filter(item => item.cartGoodsFlag === 1);
+});
+
+// 更新商品数量
+const updateQuantity = (productId, newQuantity) => {
+  const parsedQty = parseInt(newQuantity);
+  if (isNaN(parsedQty) || parsedQty < 1) {
+    alert('商品数量至少为1');
+    return;
+  }
+
+  const itemIndex = orderItems.value.findIndex(item => item.productId === productId);
+  if (itemIndex !== -1) {
+    const item = orderItems.value[itemIndex];
+    // 检查库存
+    if (parsedQty > item.maxStock) {
+      alert(`库存不足，最多可购买${item.maxStock}件`);
+      return;
+    }
+    
+    item.quantity = parsedQty;
+    item.subtotal = item.price * item.quantity;
+  }
+};
+
+// 计算商品小计金额
+const subtotalAmount = computed(() => {
+  return filteredOrderItems.value.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2);
+});
+
+// 计算最终总金额
+const finalTotalAmount = computed(() => {
+  const subtotal = parseFloat(subtotalAmount.value);
+  const shipping = shippingCost.value;
+  const disc = discount.value;
+  return (subtotal + shipping - disc).toFixed(2);
+});
+
+const confirmOrder = () => {
+  // 获取当前时间作为订单创建时间
+  const timestamp = new Date().toISOString();
+  
+  // 创建订单对象
+  const newOrder = {
+    orderId: `ORD${Date.now()}`, // 生成唯一的订单ID
+    status: '待确认', // 初始状态为待确认
+    items: JSON.parse(JSON.stringify(filteredOrderItems.value)), // 复制当前订单项目
+    totalAmount: parseFloat(finalTotalAmount.value), // 最终总金额
+    deliveryAddress: deliveryAddress.value, // 收货地址
+    notes: orderNotes.value, // 订单备注
+    createdAt: timestamp, // 创建时间
+    qrCode: null // 初始时没有二维码
+  };
+
+  // 从localStorage获取现有订单列表
+  let existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+  
+  // 添加新订单到列表
+  existingOrders.push(newOrder);
+  
+  // 保存更新后的订单列表
+  localStorage.setItem('userOrders', JSON.stringify(existingOrders));
+
+  // 提交订单后跳转到我的订单页面
+  router.push('/my-orders');
+};
+
+const backToProducts = () => {
+  router.push('/products');
+};
+</script>
+
+<style scoped>
+.order-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.iphone-frame {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  background: #ffffff;
+  border-radius: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  padding: 40px 20px 80px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 30px;
+  background: #000;
+  border-radius: 0 0 20px 20px;
+  z-index: 10;
+}
+
+.page-content {
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  color: #333;
+  margin: 0 0 10px;
+}
+
+.page-header p {
+  color: #666;
+  margin: 0;
+  font-size: 14px;
+}
+
+.order-summary, .order-user-info, .order-notes {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.order-summary h3, .order-user-info h3, .order-notes h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.order-item {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-info h4 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  color: #333;
+}
+
+.item-info p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+}
+
+.quantity-controls label {
+  margin-right: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.quantity-controls input {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.order-total {
+  padding: 15px 0;
+  border-top: 1px solid #eee;
+}
+
+.order-total p {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.order-total .final-total {
+  font-weight: bold;
+  font-size: 16px;
+  border-top: 1px dashed #ccc;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.user-details p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.address-input {
+  margin-top: 10px;
+}
+
+.address-input label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #666;
+}
+
+.address-input input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.order-notes textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.confirm-order-btn, .back-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.confirm-order-btn {
+  background: #409eff;
+  color: white;
+}
+
+.back-btn {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.home-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: #000;
+  border-radius: 100px;
+}
+</style>

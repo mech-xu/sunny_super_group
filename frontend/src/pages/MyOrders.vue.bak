@@ -1,0 +1,415 @@
+<template>
+  <div class="my-orders-container iphone-14-container">
+    <div class="iphone-frame">
+      <div class="notch"></div>
+      
+      <div class="page-content">
+        <header class="page-header">
+          <div class="header-content">
+            <button @click="goBack" class="back-btn">← 返回</button>
+            <h1>我的订单</h1>
+          </div>
+          <p>管理您的订单</p>
+        </header>
+        
+        <div class="orders-list" v-if="orders.length > 0">
+          <div 
+            v-for="order in orders" 
+            :key="order.orderId" 
+            class="order-item"
+          >
+            <div class="order-header">
+              <div class="order-id">订单号: {{ order.orderId }}</div>
+              <div class="order-status">{{ order.status }}</div>
+            </div>
+            
+            <div class="order-details">
+              <div class="order-products">
+                <div 
+                  v-for="(item, index) in order.items" 
+                  :key="index" 
+                  class="order-product"
+                >
+                  <h4>{{ item.productName }}</h4>
+                  <p>单价: ¥{{ item.price }}</p>
+                  <div class="quantity-control">
+                    <label>数量:</label>
+                    <input 
+                      type="number" 
+                      :value="item.quantity" 
+                      @change="updateOrderItemQuantity(order.orderId, index, $event.target.value)"
+                      min="1"
+                    />
+                  </div>
+                  <p>小计: ¥{{ (item.price * item.quantity).toFixed(2) }}</p>
+                </div>
+              </div>
+              
+              <div class="order-summary">
+                <p>商品总数: {{ getOrderItemCount(order) }}</p>
+                <p>订单总额: ¥{{ getOrderTotal(order) }}</p>
+                <p v-if="order.deliveryAddress">收货地址: {{ order.deliveryAddress }}</p>
+                <p v-if="order.notes">备注: {{ order.notes }}</p>
+              </div>
+            </div>
+            
+            <div class="order-actions">
+              <button @click="viewOrder(order)" class="view-btn">查看</button>
+              <button @click="editOrder(order)" class="edit-btn">修改</button>
+              <button @click="deleteOrder(order.orderId)" class="delete-btn">删除</button>
+              <button 
+                v-if="order.status === '待确认'" 
+                @click="generateOrderConfirmation(order.orderId)" 
+                class="confirm-btn"
+              >
+                确认订单
+              </button>
+              <div v-if="order.qrCode" class="qr-code">
+                <img :src="order.qrCode" alt="订单二维码" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div v-else class="empty-orders">
+          <p>暂无订单记录</p>
+        </div>
+      </div>
+      
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const orders = ref([]);
+
+// 添加返回功能
+const goBack = () => {
+  window.history.go(-1); // 返回上一页
+};
+
+// 初始化示例订单数据
+onMounted(() => {
+  // 从localStorage或其他数据源加载订单
+  const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+  orders.value = storedOrders;
+});
+
+// 获取订单商品总数
+const getOrderItemCount = (order) => {
+  return order.items.reduce((total, item) => total + item.quantity, 0);
+};
+
+// 获取订单总额
+const getOrderTotal = (order) => {
+  return order.items.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2);
+};
+
+// 查看订单详情
+const viewOrder = (order) => {
+  alert(`查看订单详情:\n订单号: ${order.orderId}\n状态: ${order.status}`);
+};
+
+// 编辑订单
+const editOrder = (order) => {
+  // 这里可以跳转到订单编辑页面或打开编辑模态框
+  alert(`编辑订单: ${order.orderId}`);
+};
+
+// 删除订单
+const deleteOrder = (orderId) => {
+  if (confirm('确定要删除这个订单吗？')) {
+    orders.value = orders.value.filter(order => order.orderId !== orderId);
+    localStorage.setItem('userOrders', JSON.stringify(orders.value));
+  }
+};
+
+// 更新订单商品数量
+const updateOrderItemQuantity = (orderId, itemIndex, newQuantity) => {
+  const parsedQty = parseInt(newQuantity);
+  if (isNaN(parsedQty) || parsedQty < 1) {
+    alert('商品数量至少为1');
+    return;
+  }
+
+  const order = orders.value.find(o => o.orderId === orderId);
+  if (order) {
+    const item = order.items[itemIndex];
+    item.quantity = parsedQty;
+    localStorage.setItem('userOrders', JSON.stringify(orders.value));
+  }
+};
+
+// 生成订单确认（订单号和二维码）
+const generateOrderConfirmation = (orderId) => {
+  const order = orders.value.find(o => o.orderId === orderId);
+  if (order) {
+    // 生成模拟订单号（实际项目中应该由后端生成）
+    const confirmationNumber = `SN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    
+    // 生成模拟二维码（实际项目中应该使用二维码生成库生成真实的二维码）
+    // 这里只是一个占位符，实际应用中需要引入二维码生成库
+    order.qrCode = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' fill='white'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='black'>QR:${confirmationNumber}</text></svg>`;
+    
+    order.status = '已确认';
+    
+    localStorage.setItem('userOrders', JSON.stringify(orders.value));
+    alert(`订单已确认！\n订单号: ${confirmationNumber}`);
+    
+    // 清空本地购物车数据
+    localStorage.removeItem('cart');
+    
+    // 跳转到产品首页
+    router.push('/products');
+  }
+};
+</script>
+
+<style scoped>
+.my-orders-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.iphone-frame {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  background: #ffffff;
+  border-radius: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  padding: 40px 20px 80px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 30px;
+  background: #000;
+  border-radius: 0 0 20px 20px;
+  z-index: 10;
+}
+
+.page-content {
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.back-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #409eff;
+  color: white;
+  font-size: 14px;
+  position: absolute;
+  left: 0;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  color: #333;
+  margin: 0 0 10px;
+}
+
+.page-header p {
+  color: #666;
+  margin: 0;
+  font-size: 14px;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.order-item {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.order-id {
+  font-weight: bold;
+  color: #333;
+}
+
+.order-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: white;
+  background-color: #409eff;
+}
+
+.order-products {
+  margin-bottom: 15px;
+}
+
+.order-product {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.order-product:last-child {
+  border-bottom: none;
+}
+
+.order-product h4 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  color: #333;
+}
+
+.order-product p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+}
+
+.quantity-control label {
+  margin-right: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.quantity-control input {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.order-summary {
+  padding: 10px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  margin: 10px 0;
+}
+
+.order-summary p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.view-btn, .edit-btn, .delete-btn, .confirm-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.view-btn {
+  background: #909399;
+  color: white;
+}
+
+.edit-btn {
+  background: #e6a23c;
+  color: white;
+}
+
+.delete-btn {
+  background: #f56c6c;
+  color: white;
+}
+
+.confirm-btn {
+  background: #67c23a;
+  color: white;
+}
+
+.qr-code {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.qr-code img {
+  width: 150px;
+  height: 150px;
+  border: 1px solid #ddd;
+  padding: 5px;
+  background: white;
+}
+
+.empty-orders {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.home-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: #000;
+  border-radius: 100px;
+}
+</style>
