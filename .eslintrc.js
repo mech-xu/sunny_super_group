@@ -5,7 +5,8 @@ module.exports = {
     node: true
   },
   extends: [
-    'eslint:recommended'
+    'eslint:recommended',
+    '@vue/eslint-config-typescript/recommended'
   ],
   parserOptions: {
     ecmaVersion: 'latest',
@@ -19,7 +20,10 @@ module.exports = {
     }],
     'no-undef': 'error',
     'no-unused-vars': 'warn',
-    'prefer-const': 'error'
+    'prefer-const': 'error',
+    // Vue 特定规则
+    'vue/multi-word-component-names': 'off',
+    'vue/no-reserved-component-names': 'off'
   },
   overrides: [
     {
