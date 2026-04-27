@@ -18,10 +18,10 @@ jobs:
           node-version: '18'
           
       - name: Install dependencies
-        run: npm ci
+        run: cd frontend && npm ci
         
-      - name: Run ESLint
-        run: npm run lint
+      - name: Run ESLint on source code
+        run: cd frontend && npx eslint src --ext .js,.vue
         
   test:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
           node-version: '18'
           
       - name: Install dependencies
-        run: npm ci
+        run: cd frontend && npm ci
         
       - name: Run tests
         run: npm test || echo "No tests configured"
@@ -51,10 +51,10 @@ jobs:
           node-version: '18'
           
       - name: Install dependencies
-        run: npm ci
+        run: cd frontend && npm ci
         
       - name: Build project
-        run: npm run build
+        run: cd frontend && npm run build
         
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3

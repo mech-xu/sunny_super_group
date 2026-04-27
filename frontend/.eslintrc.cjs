@@ -12,6 +12,12 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module'
   },
+  ignorePatterns: [
+    'dist/**',
+    'node_modules/**',
+    '*.config.js',
+    'vite.config.js'
+  ],
   rules: {
     // 禁止硬编码字符串（除了组件模板中的简单文本）
     'no-magic-numbers': ['error', { 

@@ -1,9 +1,12 @@
 import axios from 'axios';
 
+// 默认超时时间
+const DEFAULT_TIMEOUT = 10000;
+
 // 使用环境变量配置API
 const API_CONFIG = {
   baseURL: window.location.origin + (import.meta.env.VITE_API_BASE_PATH || '/api'),
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || DEFAULT_TIMEOUT,
   apiKey: import.meta.env.VITE_API_KEY || 'anon'
 };
 
