@@ -1,495 +1,409 @@
 <template>
-  <view class="container">
-    <!-- 自定义导航栏 -->
-    <view class="custom-nav nav-bar">
-      <view class="nav-back" @tap="goBack">
-        <text class="iconfont icon-back"></text>
-      </view>
-      <view class="nav-title">{{ goodsInfo.name }}</view>
-      <view class="nav-more">
-        <text class="iconfont icon-share" @tap="showShare"></text>
-      </view>
-    </view>
+  <view>
+    <s-layout :onShareAppMessage="shareInfo" navbar="goods">
+      <!-- 标题栏 -->
+      <detailNavbar />
 
-    <!-- 商品轮播图 -->
-    <view class="goods-banner">
-      <swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000" :duration="500" circular>
-        <swiper-item v-for="(image, index) in goodsInfo.images" :key="index">
-          <image :src="image" class="banner-image" mode="aspectFit"></image>
-        </swiper-item>
-      </swiper>
-    </view>
+      <!-- 骨架屏 -->
+      <detailSkeleton v-if="state.skeletonLoading" />
+      <!-- 下架/售罄提醒 -->
+      <s-empty
+        v-else-if="state.goodsInfo === null"
+        text="商品不存在或已下架"
+        icon="/static/soldout-empty.png"
+        showAction
+        actionText="再逛逛"
+        actionUrl="/pages/goods/list"
+      />
+      <block v-else>
+        <view class="detail-swiper-selector">
+          <!-- 商品轮播图  -->
+          <su-swiper
+            class="ss-m-b-14"
+            isPreview
+            :list="state.goodsSwiper"
+            dotStyle="tag"
+            imageMode="widthFix"
+            dotCur="bg-mask-40"
+            :seizeHeight="750"
+          />
 
-    <!-- 商品信息 -->
-    <view class="goods-info-section card">
-      <view class="goods-title">{{ goodsInfo.name }}</view>
-      <view class="goods-subtitle">{{ goodsInfo.description }}</view>
-      <view class="goods-price-section">
-        <text class="current-price">CAD ${{ goodsInfo.price }}</text>
-        <text class="original-price" v-if="goodsInfo.original_price">CAD ${{ goodsInfo.original_price }}</text>
-      </view>
-      <view class="goods-meta">
-        <view class="meta-item">
-          <text class="meta-label">库存</text>
-          <text class="meta-value">{{ goodsInfo.stock }} 件</text>
+          <!-- 价格+标题 -->
+          <view class="title-card detail-card ss-p-y-40 ss-p-x-20">
+            <view class="ss-flex ss-row-between ss-col-center ss-m-b-26">
+              <view class="price-box ss-flex ss-col-bottom">
+                <view class="price-text ss-m-r-16">
+                  {{ state.selectedSkuPrice.price || formatPrice(state.goodsInfo.price) }}
+                </view>
+                <view class="origin-price-text" v-if="state.goodsInfo.original_price > 0">
+                  {{ state.selectedSkuPrice.original_price || state.goodsInfo.original_price }}
+                </view>
+              </view>
+              <view class="sales-text">
+                {{ formatSales(state.goodsInfo.sales_show_type, state.goodsInfo.sales) }}
+              </view>
+            </view>
+            <view class="discounts-box ss-flex ss-row-between ss-m-b-28">
+              <div class="tag-content">
+                <view class="tag-box ss-flex">
+                  <view
+                    class="tag ss-m-r-10"
+                    v-for="promos in state.goodsInfo.promos"
+                    :key="promos.id"
+                    @tap="onActivity"
+                  >
+                    {{ promos.title }}
+                  </view>
+                </view>
+              </div>
+
+              <view
+                class="get-coupon-box ss-flex ss-col-center ss-m-l-20"
+                @tap="state.showModel = true"
+                v-if="state.couponInfo.length"
+              >
+                <view class="discounts-title ss-m-r-8">领券</view>
+                <text class="cicon-forward"></text>
+              </view>
+            </view>
+            <view class="title-text ss-line-2 ss-m-b-6">{{ state.goodsInfo.title }}</view>
+            <view class="subtitle-text ss-line-1">{{ state.goodsInfo.subtitle }}</view>
+          </view>
+
+          <!-- 功能卡片 -->
+          <view class="detail-cell-card detail-card ss-flex-col">
+            <detail-cell-sku
+              v-model="state.selectedSkuPrice.goods_sku_text"
+              :skus="state.goodsInfo.skus"
+              @tap="state.showSelectSku = true"
+            />
+            <detail-cell-service v-if="state.goodsInfo.service" v-model="state.goodsInfo.service" />
+            <detail-cell-params v-if="state.goodsInfo.params" v-model="state.goodsInfo.params" />
+          </view>
+
+          <!-- 规格与数量弹框 -->
+          <s-select-sku
+            :goodsInfo="state.goodsInfo"
+            :show="state.showSelectSku"
+            @addCart="onAddCart"
+            @buy="onBuy"
+            @change="onSkuChange"
+            @close="state.showSelectSku = false"
+          />
         </view>
-        <view class="meta-item">
-          <text class="meta-label">销量</text>
-          <text class="meta-value">{{ goodsInfo.sales_count || 0 }} 件</text>
-        </view>
-        <view class="meta-item">
-          <text class="meta-label">配送</text>
-          <text class="meta-value">仅限自提</text>
-        </view>
-      </view>
-    </view>
 
-    <!-- 商品详情 -->
-    <view class="goods-detail-section card">
-      <view class="section-title">商品详情</view>
-      <view class="detail-content">
-        <rich-text :nodes="goodsInfo.detail || '暂无商品详情'"></rich-text>
-      </view>
-    </view>
+        <!-- 评价 -->
+        <detail-comment-card class="detail-comment-selector" :goodsId="state.goodsId" />
+        <!-- 详情 -->
+        <detail-content-card class="detail-content-selector" :content="state.goodsInfo.content" />
 
-    <!-- 规格选择 -->
-    <view class="goods-specs-section card">
-      <view class="section-title">规格选择</view>
-      <view class="specs-options">
-        <view 
-          v-for="(spec, index) in goodsSpecs" 
-          :key="index"
-          :class="['spec-option', { active: selectedSpec === spec.name }]"
-          @tap="selectSpec(spec.name)"
-        >
-          {{ spec.name }}
-        </view>
-      </view>
-    </view>
+        <!-- 活动跳转 -->
+        <detail-activity-tip
+          v-if="state.goodsInfo.activities"
+          :data="state.goodsInfo"
+        ></detail-activity-tip>
 
-    <!-- 数量选择 -->
-    <view class="quantity-section card">
-      <view class="section-title">购买数量</view>
-      <view class="quantity-controls">
-        <button @tap="decreaseQuantity" class="quantity-btn" :disabled="quantity <= 1">-</button>
-        <input type="number" class="quantity-input" :value="quantity" @input="onQuantityInput" />
-        <button @tap="increaseQuantity" class="quantity-btn" :disabled="quantity >= goodsInfo.stock">+</button>
-      </view>
-    </view>
-
-    <!-- 底部操作栏 -->
-    <view class="action-bar">
-      <view class="action-left">
-        <button class="action-btn" @tap="goToCart">
-          <text class="iconfont icon-cart"></text>
-          <text>购物车</text>
-        </button>
-        <button class="action-btn" @tap="goToCustomerService">
-          <text class="iconfont icon-service"></text>
-          <text>客服</text>
-        </button>
-      </view>
-      <view class="action-right">
-        <button class="add-cart-btn" @tap="addToCart">加入购物车</button>
-        <button class="buy-now-btn" @tap="buyNow">立即购买</button>
-      </view>
-    </view>
+        <!-- 详情tabbar -->
+        <detail-tabbar v-model="state.goodsInfo">
+          <!-- TODO: 缺货中 已售罄 判断 设计-->
+          <view class="buy-box ss-flex ss-col-center ss-p-r-20" v-if="state.goodsInfo.stock > 0">
+            <button
+              class="ss-reset-button add-btn ui-Shadow-Main"
+              @tap="state.showSelectSku = true"
+            >
+              加入购物车
+            </button>
+            <button
+              class="ss-reset-button buy-btn ui-Shadow-Main"
+              @tap="state.showSelectSku = true"
+            >
+              立即购买
+            </button>
+          </view>
+          <view class="buy-box ss-flex ss-col-center ss-p-r-20" v-else>
+            <button class="ss-reset-button disabled-btn" disabled> 已售罄 </button>
+          </view>
+        </detail-tabbar>
+        <s-coupon-get
+          v-model="state.couponInfo"
+          :show="state.showModel"
+          @close="state.showModel = false"
+          @get="onGet"
+        />
+        <s-activity-pop
+          v-model="state.activityInfo"
+          :show="state.showActivityModel"
+          @close="state.showActivityModel = false"
+        />
+      </block>
+    </s-layout>
   </view>
 </template>
 
 <script setup>
-import { ref, onLoad } from 'vue';
-import { api } from '@/utils/request';
+  import { reactive, computed } from 'vue';
+  import { onLoad, onPageScroll } from '@dcloudio/uni-app';
+  import sheep from '@/sheep';
+  import { formatSales, formatGoodsSwiper, formatPrice } from '@/sheep/hooks/useGoods';
+  import detailNavbar from './components/detail/detail-navbar.vue';
+  import detailCellSku from './components/detail/detail-cell-sku.vue';
+  import detailCellService from './components/detail/detail-cell-service.vue';
+  import detailCellParams from './components/detail/detail-cell-params.vue';
+  import detailTabbar from './components/detail/detail-tabbar.vue';
+  import detailSkeleton from './components/detail/detail-skeleton.vue';
+  import detailCommentCard from './components/detail/detail-comment-card.vue';
+  import detailContentCard from './components/detail/detail-content-card.vue';
+  import detailActivityTip from './components/detail/detail-activity-tip.vue';
+  import { isEmpty } from 'lodash';
 
-// 商品信息
-const goodsInfo = ref({
-  id: '',
-  name: '商品名称',
-  description: '商品描述信息',
-  price: 0,
-  original_price: 0,
-  stock: 0,
-  images: [],
-  detail: '',
-  sales_count: 0
-});
+  // import detailActivityTip from './components/detail/detail-activity-tip.vue';
+  // import detailTab from './components/detail/detail-tab.vue';
+  // import detailCoupon from './components/detail/detail-coupon.vue';
+  onPageScroll(() => {});
 
-// 规格选项
-const goodsSpecs = ref([
-  { name: 'S' },
-  { name: 'M' },
-  { name: 'L' },
-  { name: 'XL' }
-]);
+  const state = reactive({
+    goodsId: 0,
+    skeletonLoading: true,
+    goodsInfo: {},
+    showSelectSku: false,
+    goodsSwiper: [],
+    selectedSkuPrice: {},
+    showModel: false,
+    total: 0,
+    couponInfo: [],
+    showActivityModel: false,
+    activityInfo: [],
+  });
 
-// 选中的规格
-const selectedSpec = ref('');
-// 购买数量
-const quantity = ref(1);
-
-// 页面加载
-onLoad((options) => {
-  const goodsId = options.id;
-  if (goodsId) {
-    loadGoodsDetail(goodsId);
+  // 规格变更
+  function onSkuChange(e) {
+    state.selectedSkuPrice = e;
   }
-});
 
-// 加载商品详情
-const loadGoodsDetail = async (id) => {
-  try {
-    // 模拟API调用
-    setTimeout(() => {
-      goodsInfo.value = {
-        id: id,
-        name: '加拿大枫糖浆',
-        description: '纯正加拿大枫糖浆，有机认证',
-        price: 19.99,
-        original_price: 24.99,
-        stock: 50,
-        images: [
-          'https://via.placeholder.com/750x750.png?text=Maple+Syrup+1',
-          'https://via.placeholder.com/750x750.png?text=Maple+Syrup+2',
-          'https://via.placeholder.com/750x750.png?text=Maple+Syrup+3'
+  // 添加购物车
+  function onAddCart(e) {
+    sheep.$store('cart').add(e);
+  }
+
+  // 立即购买
+  function onBuy(e) {
+    sheep.$router.go('/pages/order/confirm', {
+      data: JSON.stringify({
+        order_type: 'goods',
+        goods_list: [
+          {
+            goods_id: e.goods_id,
+            goods_num: e.goods_num,
+            goods_sku_price_id: e.id,
+          },
         ],
-        detail: '<p>这是一款来自加拿大的纯正枫糖浆，采用传统工艺制作，无添加防腐剂。</p><p>富含天然矿物质，是早餐必备佳品。</p>',
-        sales_count: 128
-      };
-    }, 500);
-  } catch (error) {
-    console.error('获取商品详情失败:', error);
-    uni.showToast({
-      title: '获取商品详情失败',
-      icon: 'none'
+      }),
     });
   }
-};
-
-// 选择规格
-const selectSpec = (specName) => {
-  selectedSpec.value = specName;
-};
-
-// 增加数量
-const increaseQuantity = () => {
-  if (quantity.value < goodsInfo.value.stock) {
-    quantity.value++;
-  } else {
-    uni.showToast({
-      title: '库存不足',
-      icon: 'none'
-    });
+  //营销活动
+  function onActivity() {
+    state.activityInfo = state.goodsInfo.promos;
+    state.showActivityModel = true;
   }
-};
 
-// 减少数量
-const decreaseQuantity = () => {
-  if (quantity.value > 1) {
-    quantity.value--;
+  //立即领取
+  async function onGet(id) {
+    const { error, msg } = await sheep.$api.coupon.get(id);
+    if (error === 0) {
+      uni.showToast({
+        title: msg,
+      });
+      setTimeout(() => {
+        getCoupon();
+      }, 1000);
+    }
   }
-};
 
-// 输入数量
-const onQuantityInput = (e) => {
-  const value = parseInt(e.detail.value) || 1;
-  if (value <= 0) {
-    quantity.value = 1;
-  } else if (value > goodsInfo.value.stock) {
-    quantity.value = goodsInfo.value.stock;
-    uni.showToast({
-      title: '库存不足',
-      icon: 'none'
-    });
-  } else {
-    quantity.value = value;
-  }
-};
-
-// 添加到购物车
-const addToCart = () => {
-  uni.showToast({
-    title: '已添加到购物车',
-    icon: 'success'
+  const shareInfo = computed(() => {
+    if (isEmpty(state.goodsInfo)) return {};
+    return sheep.$platform.share.getShareInfo(
+      {
+        title: state.goodsInfo.title,
+        image: sheep.$url.cdn(state.goodsInfo.image),
+        desc: state.goodsInfo.subtitle,
+        params: {
+          page: '2',
+          query: state.goodsInfo.id,
+        },
+      },
+      {
+        type: 'goods', // 商品海报
+        title: state.goodsInfo.title, // 商品标题
+        image: sheep.$url.cdn(state.goodsInfo.image), // 商品主图
+        price: state.goodsInfo.price[0], // 商品价格
+        original_price: state.goodsInfo.original_price, // 商品原价
+      },
+    );
   });
-};
 
-// 立即购买
-const buyNow = () => {
-  // 创建订单数据
-  const orderItem = {
-    id: goodsInfo.value.id,
-    name: goodsInfo.value.name,
-    price: goodsInfo.value.price,
-    quantity: quantity.value,
-    image: goodsInfo.value.images[0],
-    stock: goodsInfo.value.stock
-  };
-
-  // 跳转到订单页面
-  uni.navigateTo({
-    url: `/pages/order/create?goods=${encodeURIComponent(JSON.stringify(orderItem))}`
-  });
-};
-
-// 返回上一页
-const goBack = () => {
-  uni.navigateBack();
-};
-
-// 显示分享
-const showShare = () => {
-  uni.showActionSheet({
-    itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
-    success: (res) => {
-      console.log('用户选择了:', res.tapIndex);
+  onLoad(async (options) => {
+    // 非法参数
+    if (!options.id) {
+      state.goodsInfo = null;
+      return;
+    }
+    state.goodsId = options.id;
+    // 加载商品信息
+    sheep.$api.goods.detail(state.goodsId).then((res) => {
+      state.skeletonLoading = false;
+      if (res.error === 0) {
+        state.goodsInfo = res.data;
+        state.goodsSwiper = formatGoodsSwiper(state.goodsInfo.images);
+      } else {
+        // 未找到商品
+        state.goodsInfo = null;
+      }
+    });
+    const { error, data } = await sheep.$api.coupon.listByGoods(state.goodsId);
+    if (error === 0) {
+      state.couponInfo = data;
     }
   });
-};
-
-// 去购物车页面
-const goToCart = () => {
-  uni.switchTab({
-    url: '/pages/index/cart'
-  });
-};
-
-// 联系客服
-const goToCustomerService = () => {
-  uni.makePhoneCall({
-    phoneNumber: '123-456-7890' // 替换为实际客服电话
-  });
-};
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/variables.scss';
-
-.goods-banner {
-  height: 750rpx;
-  padding: $spacing-md;
-
-  .banner-swiper {
-    height: 100%;
-    border-radius: $radius-lg;
-
-    .banner-image {
-      width: 100%;
-      height: 100%;
-      border-radius: $radius-lg;
-    }
-  }
-}
-
-.goods-info-section {
-  padding: $spacing-md;
-  margin: 0 $spacing-md $spacing-md;
-
-  .goods-title {
-    font-size: $font-size-lg;
-    font-weight: bold;
-    color: $text-color;
-    margin-bottom: $spacing-sm;
-    line-height: 1.4;
+  .detail-card {
+    background-color: #ffff;
+    margin: 14rpx 20rpx;
+    border-radius: 10rpx;
+    overflow: hidden;
   }
 
-  .goods-subtitle {
-    font-size: $font-size-md;
-    color: $text-color-secondary;
-    margin-bottom: $spacing-md;
-    line-height: 1.4;
-  }
+  // 价格标题卡片
+  .title-card {
+    .price-box {
+      .price-text {
+        font-size: 42rpx;
+        font-weight: 500;
+        color: #ff3000;
+        line-height: 30rpx;
+        font-family: OPPOSANS;
 
-  .goods-price-section {
-    margin: $spacing-md 0;
-    display: flex;
-    align-items: baseline;
+        &::before {
+          content: '￥';
+          font-size: 30rpx;
+        }
+      }
 
-    .current-price {
-      font-size: $font-size-xl;
-      font-weight: bold;
-      color: $danger-color;
-      margin-right: $spacing-sm;
+      .origin-price-text {
+        font-size: 26rpx;
+        font-weight: 400;
+        text-decoration: line-through;
+        color: $gray-c;
+        font-family: OPPOSANS;
+
+        &::before {
+          content: '￥';
+        }
+      }
     }
 
-    .original-price {
-      font-size: $font-size-md;
-      color: $text-color-placeholder;
-      text-decoration: line-through;
-    }
-  }
-
-  .goods-meta {
-    display: flex;
-    justify-content: space-between;
-    margin-top: $spacing-md;
-    padding-top: $spacing-md;
-    border-top: $border;
-
-    .meta-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .meta-label {
-      font-size: $font-size-sm;
-      color: $text-color-placeholder;
-      margin-bottom: $spacing-xs;
-    }
-
-    .meta-value {
-      font-size: $font-size-md;
-      color: $text-color;
+    .sales-text {
+      font-size: 26rpx;
       font-weight: 500;
-    }
-  }
-}
-
-.goods-detail-section {
-  padding: $spacing-md;
-  margin: 0 $spacing-md $spacing-md;
-
-  .section-title {
-    font-size: $font-size-lg;
-    font-weight: bold;
-    color: $text-color;
-    margin-bottom: $spacing-md;
-  }
-
-  .detail-content {
-    line-height: 1.6;
-  }
-}
-
-.goods-specs-section {
-  padding: $spacing-md;
-  margin: 0 $spacing-md $spacing-md;
-
-  .section-title {
-    font-size: $font-size-lg;
-    font-weight: bold;
-    color: $text-color;
-    margin-bottom: $spacing-md;
-  }
-
-  .specs-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-sm;
-  }
-
-  .spec-option {
-    padding: $spacing-sm $spacing-md;
-    border: $border;
-    border-radius: $radius-round;
-    font-size: $font-size-md;
-    color: $text-color-secondary;
-  }
-
-  .spec-option.active {
-    border-color: $primary-color;
-    color: $primary-color;
-    background-color: rgba($primary-color, 0.1);
-  }
-}
-
-.quantity-section {
-  padding: $spacing-md;
-  margin: 0 $spacing-md $spacing-md;
-
-  .section-title {
-    font-size: $font-size-lg;
-    font-weight: bold;
-    color: $text-color;
-    margin-bottom: $spacing-md;
-  }
-
-  .quantity-controls {
-    display: flex;
-    align-items: center;
-
-    .quantity-btn {
-      width: 60rpx;
-      height: 60rpx;
-      border: $border;
-      background: #fff;
-      color: $text-color;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: $font-size-lg;
+      color: $gray-c;
     }
 
-    .quantity-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .discounts-box {
+      .tag-content {
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+      }
+      .tag-box {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tag {
+        flex-shrink: 0;
+        padding: 4rpx 10rpx;
+        font-size: 24rpx;
+        font-weight: 500;
+        border-radius: 4rpx;
+        color: var(--ui-BG-Main);
+        background: var(--ui-BG-Main-tag);
+      }
+
+      .discounts-title {
+        font-size: 24rpx;
+        font-weight: 500;
+        color: var(--ui-BG-Main);
+        line-height: normal;
+      }
+
+      .cicon-forward {
+        color: var(--ui-BG-Main);
+        font-size: 24rpx;
+        line-height: normal;
+        margin-top: 4rpx;
+      }
     }
 
-    .quantity-input {
-      width: 80rpx;
-      height: 60rpx;
-      border: $border;
-      border-radius: $radius-round;
-      text-align: center;
-      margin: 0 $spacing-md;
-      font-size: $font-size-md;
+    .title-text {
+      font-size: 30rpx;
+      font-weight: bold;
+      line-height: 42rpx;
     }
-  }
-}
 
-.action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  height: 100rpx;
-  background: #fff;
-  border-top: $border;
-  z-index: 999;
-  padding-bottom: env(safe-area-inset-bottom);
-
-  .action-left {
-    display: flex;
-    width: 40%;
-
-    .action-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-right: $border;
-      background: #fff;
-      color: $text-color-secondary;
-      font-size: $font-size-sm;
+    .subtitle-text {
+      font-size: 26rpx;
+      font-weight: 400;
+      color: $dark-9;
+      line-height: 42rpx;
     }
   }
 
-  .action-right {
-    display: flex;
-    width: 60%;
+  // 购买
+  .buy-box {
+    .add-btn {
+      width: 214rpx;
+      height: 72rpx;
+      font-weight: 500;
+      font-size: 28rpx;
+      border-radius: 40rpx 0 0 40rpx;
+      background-color: var(--ui-BG-Main-light);
+      color: var(--ui-BG-Main);
+    }
+
+    .buy-btn {
+      width: 214rpx;
+      height: 72rpx;
+      font-weight: 500;
+      font-size: 28rpx;
+
+      border-radius: 0 40rpx 40rpx 0;
+      background: linear-gradient(90deg, var(--ui-BG-Main), var(--ui-BG-Main-gradient));
+      color: $white;
+    }
+    .disabled-btn {
+      width: 428rpx;
+      height: 72rpx;
+      border-radius: 40rpx;
+      background: #999999;
+      color: $white;
+    }
   }
 
-  .add-cart-btn {
-    background: #ffd95a;
-    color: #333;
-    border: none;
-    font-size: $font-size-md;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  .model-box {
+    height: 60vh;
+    .model-content {
+      height: 56vh;
+    }
+    .title {
+      font-size: 36rpx;
+      font-weight: bold;
+      color: #333333;
+    }
 
-  .buy-now-btn {
-    background: $primary-color;
-    color: #fff;
-    border: none;
-    font-size: $font-size-md;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .subtitle {
+      font-size: 26rpx;
+      font-weight: 500;
+      color: #333333;
+    }
   }
-}
 </style>

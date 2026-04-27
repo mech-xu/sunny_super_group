@@ -1,23 +1,34 @@
 <script setup>
-import { onLaunch, onShow, onError } from '@dcloudio/uni-app';
+  import { onLaunch, onShow, onError } from '@dcloudio/uni-app';
+  import { ShoproInit } from './sheep';
 
-onLaunch(() => {
-  console.log('SunnyNow团购自提系统启动');
-  
-  // 隐藏原生导航栏，使用自定义底部导航
-  uni.hideTabBar();
-});
+  onLaunch(() => {
+    // 隐藏原生导航栏 使用自定义底部导航
+    uni.hideTabBar();
 
-onError((err) => {
-  console.log('AppOnError:', err);
-});
+    // 加载Shopro底层依赖
+    ShoproInit();
+  });
 
-onShow(() => {
-  // 应用显示时的逻辑
-  console.log('SunnyNow团购自提系统显示');
-});
+  onError((err) => {
+    console.log('AppOnError:', err);
+  });
+
+  onShow(() => {
+    // #ifdef APP-PLUS
+    // 获取urlSchemes参数
+    const args = plus.runtime.arguments;
+    if (args) {
+    }
+
+    // 获取剪贴板
+    uni.getClipboardData({
+      success: (res) => { },
+    });
+    // #endif
+  });
 </script>
 
 <style lang="scss">
-@import './styles/index.scss';
+  @import '@/sheep/scss/index.scss';
 </style>

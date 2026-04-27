@@ -1,16 +1,40 @@
 import axios from 'axios';
 
-// 修改为使用代理路径，解决CORS问题
-const BASE_URL = window.location.origin;  // 使用当前页面的协议和主机
+// 使用环境变量配置API
+const API_CONFIG = {
+  baseURL: window.location.origin + (import.meta.env.VITE_API_BASE_PATH || '/api'),
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
+  apiKey: import.meta.env.VITE_API_KEY || 'anon'
+};
 
 const apiClient = axios.create({
-  baseURL: BASE_URL + '/rest',  // 使用代理路径
-  timeout: 10000,
+  baseURL: API_CONFIG.baseURL,
+  timeout: API_CONFIG.timeout,
   headers: {
     'Content-Type': 'application/json',
-    'apikey': 'anon', 
+    'apikey': API_CONFIG.apiKey, 
   }
 });
+
+// 添加请求拦截器
+apiClient.interceptors.request.use(
+  (config) => {
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 添加响应拦截器
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 export const api = {
   // 新增：检查手机号是否已存在
@@ -22,13 +46,17 @@ export const api = {
       return response.data.length > 0;
     } catch (error) {
       console.error('检查用户存在性时出错:', error);
-      // 当网络错误时，尝试使用一个备用方法来判断用户是否存在
-      // 但在这种情况下，我们只能返回false，因为无法确定用户是否存在
-      // 更好的方式是让用户知道网络连接有问题
-      throw error; // 抛出错误，让调用者知道网络连接有问题
+      // API调用失败时，降级到使用localStorage
+      return this.checkUserExistsWithLocalStorage(phone);
     }
   },
-
+  
+  // 降级处理：使用localStorage检查用户是否存在
+  checkUserExistsWithLocalStorage: (phone) => {
+    const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
+    return allUsers.some(user => user.phone === phone);
+  },
+  
   getPosts: async () => {
     const response = await apiClient.get('/posts');
     return response.data;
@@ -70,9 +98,8 @@ export const api = {
   createGroupOrder: async (orderData) => {
     const response = await apiClient.post('/orders', {
       ...orderData,
-      order_type: 'group_buying',  // 标记为团购订单
-      phone: orderData.cell,       // 使用cell字段替代原来的phone
-      customer_nickname: orderData.nickname  // 使用昵称字段
+      order_type: 'group_buying'  // 标记为团购订单
+      // 不需要重新映射phone和customer_nickname，因为orderData中已经包含正确的字段
     });
     return response.data;
   },
@@ -89,6 +116,12 @@ export const api = {
   
   updateGroupOrder: async (orderId, orderData) => {
     const response = await apiClient.patch(`/orders?id=eq.${orderId}&order_type=eq.group_buying`, orderData);
+    return response.data;
+  },
+  
+  // 删除团购订单
+  deleteGroupOrder: async (orderId) => {
+    const response = await apiClient.delete(`/orders?id=eq.${orderId}&order_type=eq.group_buying`);
     return response.data;
   },
   
@@ -134,11 +167,22 @@ export const api = {
     }
   },
 
+  // 获取指定ID的商家详情
+  getMerchantById: async (merchantId) => {
+    try {
+      const response = await apiClient.get(`/merchants?id=eq.${merchantId}`);
+      return response.data[0] || null;
+    } catch (error) {
+      console.error('获取商家详情失败:', error);
+      return null;
+    }
+  },
+
   // 获取商品列表
   getProducts: async () => {
     try {
-      // 只获取状态为true的商品
-      const response = await apiClient.get('/products?status=eq.true&order=sort.asc,name.asc');
+      // 只获取状态为true的商品 - 使用正确的查询参数格式
+      const response = await apiClient.get('/products?status=true&order=sort.asc,name.asc');
       return response.data;
     } catch (error) {
       console.error('获取商品列表失败:', error);
@@ -146,6 +190,49 @@ export const api = {
     }
   },
 
+  // 创建新商品
+  createProduct: async (productData) => {
+    try {
+      const response = await apiClient.post('/products', productData);
+      return response.data;
+    } catch (error) {
+      console.error('创建商品失败:', error);
+      throw error;
+    }
+  },
+
+  // 更新商品
+  updateProduct: async (productId, productData) => {
+    try {
+      const response = await apiClient.patch(`/products?id=eq.${productId}`, productData);
+      return response.data;
+    } catch (error) {
+      console.error('更新商品失败:', error);
+      throw error;
+    }
+  },
+
+  // 删除商品
+  deleteProduct: async (productId) => {
+    try {
+      await apiClient.delete(`/products?id=eq.${productId}`);
+      return true;
+    } catch (error) {
+      console.error('删除商品失败:', error);
+      throw error;
+    }
+  },
+
+  // 获取指定商户的商品列表
+  getProductsByMerchant: async (merchantId) => {
+    try {
+      const response = await apiClient.get(`/products?merchant_id=eq.${merchantId}&order=sort.asc,name.asc`);
+      return response.data;
+    } catch (error) {
+      console.error('获取商户商品列表失败:', error);
+      return [];
+    }
+  },
 };
 
 export default apiClient;

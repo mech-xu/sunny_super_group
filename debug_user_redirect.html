@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>调试用户跳转逻辑</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .debug-title { font-weight: bold; margin-bottom: 10px; color: #333; }
+        .debug-info { margin: 5px 0; }
+        .highlight { background: #fff3cd; padding: 2px 4px; border-radius: 3px; }
+        button { padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>调试用户跳转逻辑</h1>
+        
+        <div class="debug-section">
+            <div class="debug-title">当前用户数据:</div>
+            <div id="currentUserInfo"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">所有用户数据:</div>
+            <div id="allUsersInfo"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">跳转逻辑分析:</div>
+            <div id="redirectAnalysis"></div>
+        </div>
+        
+        <div class="debug-section">
+            <button onclick="simulateLogin()">模拟登录检查</button>
+            <button onclick="clearData()">清空数据重新测试</button>
+            <button onclick="goToAuth()">跳转到登录页</button>
+        </div>
+    </div>
+
+    <script>
+        function displayUserInfo() {
+            const currentUser = localStorage.getItem('currentUser');
+            const allUsers = localStorage.getItem('allUsers');
+            
+            const currentUserInfo = document.getElementById('currentUserInfo');
+            const allUsersInfo = document.getElementById('allUsersInfo');
+            
+            if (currentUser) {
+                const user = JSON.parse(currentUser);
+                currentUserInfo.innerHTML = `
+                    <div class="debug-info">ID: ${user.id}</div>
+                    <div class="debug-info">Phone: <span class="highlight">${user.phone}</span></div>
+                    <div class="debug-info">Nickname: <span class="highlight">${user.nickname}</span></div>
+                    <div class="debug-info">Role: <span class="highlight">${user.role}</span></div>
+                `;
+            } else {
+                currentUserInfo.innerHTML = '<div class="debug-info">无当前用户数据</div>';
+            }
+            
+            if (allUsers) {
+                const users = JSON.parse(allUsers);
+                let html = '';
+                users.forEach((user, index) => {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; border-radius: 3px;">
+                            <div class="debug-info">用户 ${index + 1}:</div>
+                            <div class="debug-info">Phone: ${user.phone}</div>
+                            <div class="debug-info">Nickname: ${user.nickname}</div>
+                            <div class="debug-info">Role: ${user.role}</div>
+                        </div>
+                    `;
+                });
+                allUsersInfo.innerHTML = html;
+            } else {
+                allUsersInfo.innerHTML = '<div class="debug-info">无用户列表数据</div>';
+            }
+        }
+        
+        function simulateLogin() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                alert('请先登录或注册用户');
+                return;
+            }
+            
+            const user = JSON.parse(currentUser);
+            const analysisDiv = document.getElementById('redirectAnalysis');
+            
+            // 模拟Auth.vue中的跳转逻辑
+            const isMerchantAdmin = user.role === 'merchant' && user.nickname === '阳光后台';
+            
+            let analysis = `
+                <div class="debug-info">用户角色检查: ${user.role === 'merchant' ? '✅ 是商家' : '❌ 不是商家'}</div>
+                <div class="debug-info">昵称检查: ${user.nickname === '阳光后台' ? '✅ 昵称正确' : '❌ 昵称错误（当前: "' + user.nickname + '"）'}</div>
+                <div class="debug-info">综合判断: ${isMerchantAdmin ? '✅ 应跳转到商户管理页面' : '❌ 应跳转到首页'}</div>
+                <div class="debug-info" style="margin-top: 10px; font-weight: bold; color: ${isMerchantAdmin ? 'green' : 'red'};">
+                    预期跳转页面: ${isMerchantAdmin ? '/merchant-dashboard' : '/index'}
+                </div>
+            `;
+            
+            analysisDiv.innerHTML = analysis;
+        }
+        
+        function clearData() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('allUsers');
+            localStorage.removeItem('cart');
+            displayUserInfo();
+            document.getElementById('redirectAnalysis').innerHTML = '<div class="debug-info">数据已清空</div>';
+            alert('本地存储数据已清空，请重新注册测试');
+        }
+        
+        function goToAuth() {
+            window.location.href = '/auth';
+        }
+        
+        // 页面加载时显示信息
+        displayUserInfo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "sunnynow-local",
+  "version": "1.0.0",
+  "description": "SunnyNow local development environment",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
+    "lint": "eslint frontend/src --ext .js,.vue",
+    "lint:fix": "eslint frontend/src --ext .js,.vue --fix",
+    "format": "prettier --write frontend/src",
+    "format:check": "prettier --check frontend/src",
+    "test": "echo \"No tests configured\"",
+    "ci": "npm run lint && npm run test && npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "prettier": "^2.8.0"
+  }
+}

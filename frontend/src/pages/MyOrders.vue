@@ -1,14 +1,14 @@
 <template>
   <div class="my-orders">
     <iPhoneFrame>
-      <WeChatHeader title="我的订单">
+      <SimpleHeader title="我的订单">
         <template #left>
           <button @click="goHome" class="home-btn">🏠</button>
         </template>
         <template #right>
           <button @click="refreshOrders" class="refresh-btn">🔄</button>
         </template>
-      </WeChatHeader>
+      </SimpleHeader>
 
       <main class="main-content">
         <div class="orders-tabs">
@@ -90,7 +90,7 @@
         </div>
       </main>
 
-      <WeChatFooter :activeTab="currentActiveTab" @tab-change="handleTabChange" />
+      <SimpleFooter :activeTab="currentActiveTab" @tab-change="handleTabChange" />
     </iPhoneFrame>
   </div>
 </template>
@@ -99,15 +99,16 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import iPhoneFrame from '../components/iPhoneFrame.vue';
-import WeChatHeader from '../components/WeChatHeader.vue';
-import WeChatFooter from '../components/WeChatFooter.vue';
+import SimpleHeader from '../components/SimpleHeader.vue';
+import SimpleFooter from '../components/SimpleFooter.vue';
+import { api } from '../api.js';
 
 const router = useRouter();
 const orders = ref([]);
 const activeTab = ref('all'); // all, pending, confirmed, completed, cancelled
 
 // 当前激活的底部标签
-const currentActiveTab = ref('profile');
+const currentActiveTab = ref('user');
 
 // 订单标签配置
 const orderTabs = ref([
@@ -118,13 +119,26 @@ const orderTabs = ref([
   { key: 'cancelled', label: '已取消', count: 0 }
 ]);
 
-// 初始化示例订单数据
-onMounted(() => {
-  // 从localStorage加载订单
-  const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
-  orders.value = storedOrders;
-  
-  // 更新标签计数
+// 从 API 加载订单数据
+const loadOrdersFromAPI = async () => {
+  try {
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      if (user.id) {
+        const userOrders = await api.getGroupOrders(user.id);
+        orders.value = userOrders || [];
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load orders from API:', error);
+    orders.value = [];
+  }
+};
+
+// 初始化订单数据 - 从 API 而不是 localStorage
+onMounted(async () => {
+  await loadOrdersFromAPI();
   updateTabCounts();
 });
 
@@ -186,53 +200,81 @@ const editOrder = (order) => {
 };
 
 // 删除订单
-const deleteOrder = (orderId) => {
+const deleteOrder = async (orderId) => {
   if (confirm('确定要删除这个订单吗？')) {
-    orders.value = orders.value.filter(order => order.orderId !== orderId);
-    localStorage.setItem('userOrders', JSON.stringify(orders.value));
-    updateTabCounts();
+    try {
+      // 从 API 删除订单
+      await api.deleteGroupOrder(orderId);
+      // 重新加载订单
+      await loadOrdersFromAPI();
+      updateTabCounts();
+    } catch (error) {
+      console.error('删除订单失败:', error);
+      alert('删除订单失败，请重试');
+    }
   }
 };
 
 // 更新订单商品数量
-const updateOrderItemQuantity = (orderId, itemIndex, newQuantity) => {
+const updateOrderItemQuantity = async (orderId, itemIndex, newQuantity) => {
   const parsedQty = parseInt(newQuantity);
   if (isNaN(parsedQty) || parsedQty < 1) {
     alert('商品数量至少为1');
     return;
   }
 
-  const order = orders.value.find(o => o.orderId === orderId);
-  if (order) {
-    const item = order.items[itemIndex];
-    item.quantity = parsedQty;
-    localStorage.setItem('userOrders', JSON.stringify(orders.value));
+  try {
+    // 从 API 获取当前订单
+    const order = await api.getGroupOrderById(orderId);
+    if (order) {
+      const item = order.items[itemIndex];
+      if (item) {
+        item.quantity = parsedQty;
+        // 更新订单到 API
+        await api.updateGroupOrder(orderId, order);
+        // 重新加载订单
+        await loadOrdersFromAPI();
+      }
+    }
+  } catch (error) {
+    console.error('更新订单数量失败:', error);
+    alert('更新订单数量失败，请重试');
   }
 };
 
 // 生成订单确认（订单号和二维码）
-const generateOrderConfirmation = (orderId) => {
-  const order = orders.value.find(o => o.orderId === orderId);
-  if (order) {
-    // 生成模拟订单号（实际项目中应该由后端生成）
-    const confirmationNumber = `SN${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    
-    // 生成模拟二维码（实际项目中应该使用二维码库生成真实的二维码）
-    // 这里只是一个占位符，实际应用中需要引入二维码生成库
-    order.qrCode = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' fill='white'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='black'>QR:${confirmationNumber}</text></svg>`;
-    
-    order.status = '已确认';
-    
-    localStorage.setItem('userOrders', JSON.stringify(orders.value));
-    alert(`订单已确认！\n订单号: ${confirmationNumber}`);
-    
-    updateTabCounts();
-    
-    // 清空本地购物车数据
-    localStorage.removeItem('cart');
-    
-    // 跳转到产品首页
-    router.push('/products');
+const generateOrderConfirmation = async (orderId) => {
+  try {
+    // 从 API 获取当前订单
+    const order = await api.getGroupOrderById(orderId);
+    if (order) {
+      // 生成模拟订单号（实际项目中应该由后端生成）
+      const confirmationNumber = `SN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      
+      // 生成模拟二维码（实际项目中应该使用二维码库生成真实的二维码）
+      // 这里只是一个占位符，实际应用中需要引入二维码生成库
+      order.qrCode = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' fill='white'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='black'>QR:${confirmationNumber}</text></svg>`;
+      
+      order.status = '已确认';
+      
+      // 更新订单到 API
+      await api.updateGroupOrder(orderId, order);
+      
+      alert(`订单已确认！\n订单号: ${confirmationNumber}`);
+      
+      // 重新加载订单
+      await loadOrdersFromAPI();
+      updateTabCounts();
+      
+      // 清空本地购物车数据
+      localStorage.removeItem('cart');
+      
+      // 跳转到产品首页
+      router.push('/products');
+    }
+  } catch (error) {
+    console.error('确认订单失败:', error);
+    alert('确认订单失败，请重试');
   }
 };
 
@@ -247,16 +289,23 @@ const goHome = () => {
 };
 
 // 刷新订单
-const refreshOrders = () => {
-  const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
-  orders.value = storedOrders;
+const refreshOrders = async () => {
+  await loadOrdersFromAPI();
   updateTabCounts();
 };
 
 // 底部标签切换
-const handleTabChange = (tab) => {
-  currentActiveTab.value = tab.name;
-  router.push(tab.path);
+const handleTabChange = (tabName) => {
+  currentActiveTab.value = tabName;
+  if (tabName === 'home') {
+    router.push('/');
+  } else if (tabName === 'goods') {
+    router.push('/goods');
+  } else if (tabName === 'cart') {
+    router.push('/cart');
+  } else if (tabName === 'user') {
+    router.push('/user');
+  }
 };
 </script>
 
@@ -281,7 +330,7 @@ const handleTabChange = (tab) => {
 .tab-btn {
   flex-shrink: 0;
   padding: 8px 16px;
-  background: #f0f0f0;
+  background: #f8f9fa;
   border: none;
   border-radius: 20px;
   font-size: 14px;
@@ -345,92 +394,65 @@ const handleTabChange = (tab) => {
   background-color: #909399;
 }
 
-.order-products {
+.order-details {
   margin-bottom: 15px;
 }
 
+.order-products {
+  margin-bottom: 10px;
+}
+
 .order-product {
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
 }
 
-.order-product:last-child {
-  border-bottom: none;
-}
-
-.order-product h4 {
-  margin: 0 0 5px;
-  font-size: 16px;
-  color: #333;
-}
-
-.order-product p {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.item-price {
+.item-price, .item-subtotal {
   color: #e74c3c;
-  font-weight: 500;
-}
-
-.item-subtotal {
-  color: #333;
-  font-weight: 500;
+  font-weight: bold;
 }
 
 .quantity-control {
   display: flex;
   align-items: center;
-  margin: 5px 0;
+  gap: 8px;
+  margin: 8px 0;
 }
 
 .quantity-control label {
-  margin-right: 10px;
   font-size: 14px;
   color: #666;
 }
 
 .quantity-control input {
   width: 60px;
-  padding: 4px 8px;
+  padding: 4px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  text-align: center;
 }
 
 .order-summary {
-  padding: 10px 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
-  margin: 10px 0;
-}
-
-.order-summary p {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #666;
+  font-weight: bold;
+  color: #333;
 }
 
 .order-actions {
   display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 15px;
 }
 
 .view-btn, .edit-btn, .delete-btn, .confirm-btn {
-  padding: 8px 12px;
+  padding: 6px 12px;
   border: none;
   border-radius: 4px;
+  font-size: 12px;
   cursor: pointer;
-  font-size: 14px;
-  white-space: nowrap;
 }
 
 .view-btn {
-  background: #909399;
+  background: #409eff;
   color: white;
 }
 
@@ -452,49 +474,42 @@ const handleTabChange = (tab) => {
 .qr-code {
   margin-top: 10px;
   text-align: center;
-  padding: 10px;
-  background: white;
-  border-radius: 8px;
 }
 
 .qr-code img {
   width: 150px;
   height: 150px;
-  border: 1px solid #ddd;
-  padding: 5px;
-  background: white;
-}
-
-.qr-code p {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: #666;
+  margin: 10px auto;
 }
 
 .order-id-small {
   font-size: 12px;
   color: #666;
-  word-break: break-all;
   margin-top: 5px;
 }
 
 .empty-orders {
   text-align: center;
-  padding: 40px 20px;
+  padding: 40px 16px;
   color: #999;
+  font-size: 16px;
 }
 
-.home-btn, .refresh-btn {
+.home-btn {
   background: none;
   border: none;
   font-size: 18px;
-  color: #07c160;
+  color: #333;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 4px;
 }
 
-.home-btn:hover, .refresh-btn:hover {
-  background: #f5f5f5;
+.refresh-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #333;
+  cursor: pointer;
+  padding: 4px;
 }
 </style>

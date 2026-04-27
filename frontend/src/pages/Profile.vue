@@ -1,14 +1,9 @@
 <template>
   <div class="profile-container">
-    <div class="iphone-frame">
-      <div class="notch"></div>
+    <iPhoneFrame>
+      <SimpleHeader title="个人资料" :showBack="true" @back="goBack" />
       
-      <div class="page-content">
-        <header class="page-header">
-          <button @click="goBack" class="back-btn">←</button>
-          <h1>我的</h1>
-        </header>
-        
+      <main class="main-content">
         <div class="user-info-section">
           <div class="user-avatar">
             <div class="avatar-placeholder">👤</div>
@@ -29,169 +24,128 @@
           </div>
         </div>
         
-        <div class="menu-section">
-          <div class="menu-item" @click="viewMyOrders">
-            <span>我的订单</span>
-            <span>→</span>
-          </div>
-          <div class="menu-item" @click="logout">
-            <span>退出登录</span>
-            <span>→</span>
-          </div>
+        <div class="action-buttons">
+          <button @click="editProfile" class="edit-btn">编辑资料</button>
+          <button @click="changePassword" class="password-btn">修改密码</button>
+          <button @click="logout" class="logout-btn">退出登录</button>
         </div>
-      </div>
-      
-      <div class="home-indicator"></div>
-    </div>
+      </main>
+
+      <SimpleFooter :activeTab="'user'" @tab-change="handleTabChange" />
+    </iPhoneFrame>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'ProfilePage',
-  data() {
-    return {
-      currentUser: null
-    }
-  },
-  created() {
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      this.currentUser = JSON.parse(storedUser);
-    } else {
-      this.$router.push('/');
-    }
-  },
-  methods: {
-    goBack() {
-      this.$router.go(-1);
-    },
-    formatPhone(phone) {
-      if (!phone) return '';
-      // 提取手机号部分（去掉+1前缀）
-      const digits = phone.replace(/\D/g, '');
-      if (digits.length >= 10) {
-        const last10 = digits.slice(-10);
-        return `+1 (${last10.slice(0, 3)}) ${last10.slice(3, 6)}-${last10.slice(6)}`;
-      }
-      return phone;
-    },
-    viewMyOrders() {
-      this.$router.push('/my-orders');
-    },
-    logout() {
-      localStorage.removeItem('currentUser');
-      this.$router.push('/');
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import iPhoneFrame from '../components/iPhoneFrame.vue';
+import SimpleHeader from '../components/SimpleHeader.vue';
+import SimpleFooter from '../components/SimpleFooter.vue';
+
+const router = useRouter();
+const currentUser = ref(null);
+
+onMounted(() => {
+  const storedUser = localStorage.getItem('currentUser');
+  if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
+    try {
+      currentUser.value = JSON.parse(storedUser);
+    } catch (error) {
+      console.error('解析用户数据失败:', error);
+      currentUser.value = null;
     }
   }
-}
+  
+  if (!currentUser.value) {
+    router.push('/auth');
+  }
+});
+
+const formatPhone = (phone) => {
+  if (!phone) return '';
+  // 格式化手机号，例如: 138****1234
+  if (phone.length >= 7) {
+    return phone.substring(0, 3) + '****' + phone.substring(phone.length - 4);
+  }
+  return phone;
+};
+
+const editProfile = () => {
+  alert('编辑资料功能暂未开放');
+};
+
+const changePassword = () => {
+  alert('修改密码功能暂未开放');
+};
+
+const logout = () => {
+  if (confirm('确定要退出登录吗？')) {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('cart');
+    router.push('/auth');
+  }
+};
+
+const goBack = () => {
+  router.back();
+};
+
+// 底部标签切换
+const handleTabChange = (tabName) => {
+  if (tabName === 'home') {
+    router.push('/');
+  } else if (tabName === 'goods') {
+    router.push('/goods');
+  } else if (tabName === 'cart') {
+    router.push('/cart');
+  } else if (tabName === 'user') {
+    router.push('/user');
+  }
+};
 </script>
 
 <style scoped>
-.profile-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.iphone-frame {
-  width: 100%;
-  max-width: 480px;
-  height: 100vh;
-  background: white;
-  border-radius: 40px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-}
-
-.notch {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 160px;
-  height: 20px;
-  background: black;
-  border-radius: 0 0 20px 20px;
-  z-index: 10;
-}
-
-.page-content {
-  padding-top: 40px;
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  padding: 10px 20px;
-  border-bottom: 1px solid #eee;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.page-header h1 {
-  flex: 1;
-  text-align: center;
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  padding: 5px 10px;
-  cursor: pointer;
+.main-content {
+  padding: 16px 0;
 }
 
 .user-info-section {
-  padding: 20px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  background: white;
+  margin: 0 16px 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .user-avatar {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .avatar-placeholder {
   width: 80px;
   height: 80px;
-  margin: 0 auto;
-  background: #f0f0f0;
   border-radius: 50%;
+  background: #f0f0f0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32px;
+  color: #999;
 }
 
 .user-details {
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 30px;
+  width: 100%;
 }
 
 .user-field {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .user-field:last-child {
@@ -199,7 +153,7 @@ export default {
 }
 
 .label {
-  font-weight: 500;
+  font-weight: bold;
   color: #333;
 }
 
@@ -207,33 +161,48 @@ export default {
   color: #666;
 }
 
-.menu-section {
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
+.action-buttons {
+  padding: 0 16px;
 }
 
-.menu-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+.edit-btn,
+.password-btn,
+.logout-btn {
+  width: 100%;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
-.menu-item:last-child {
-  border-bottom: none;
+.edit-btn {
+  background: #07c160;
+  color: white;
 }
 
-.home-indicator {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 130px;
-  height: 5px;
-  background: black;
-  border-radius: 5px;
+.edit-btn:hover {
+  background: #06a852;
+}
+
+.password-btn {
+  background: #17a2b8;
+  color: white;
+}
+
+.password-btn:hover {
+  background: #138496;
+}
+
+.logout-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.logout-btn:hover {
+  background: #c82333;
 }
 </style>

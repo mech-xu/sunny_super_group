@@ -1,45 +1,87 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
+  // 首页
   { 
     path: '/', 
+    redirect: '/index'
+  },
+  { 
+    path: '/index', 
+    component: () => import('../pages/index.vue') 
+  },
+  
+  // 商品相关页面
+  { 
+    path: '/goods', 
+    component: () => import('../pages/goods/index.vue') 
+  },
+  { 
+    path: '/goods/:id', 
+    component: () => import('../pages/goods/detail.vue'),
+    props: true
+  },
+  
+  // 购物车页面
+  { 
+    path: '/cart', 
+    component: () => import('../pages/CartDetails.vue') 
+  },
+    
+  // 个人中心页面
+  { 
+    path: '/user', 
+    component: () => import('../pages/user/index.vue') 
+  },
+  
+  // 认证相关页面
+  { 
+    path: '/auth', 
     component: () => import('../pages/Auth.vue') 
   },
   { 
     path: '/register', 
     component: () => import('../pages/Register.vue') 
   },
+  
+  // 管理员登录页面
   { 
-    path: '/products', 
-    component: () => import('../pages/ProductDirectory.vue') 
+    path: '/admin-login', 
+    component: () => import('../pages/AdminLogin.vue') 
   },
+  
+  // 其他页面（保留用于调试）
   { 
     path: '/profile', 
     component: () => import('../pages/Profile.vue') 
-  },
-  { 
-    path: '/order-preview', 
-    component: () => import('../pages/OrderPreview.vue') 
   },
   { 
     path: '/my-orders', 
     component: () => import('../pages/MyOrders.vue') 
   },
   { 
-    path: '/cart', 
-    component: () => import('../pages/CartDetails.vue') 
-  },
-  { 
     path: '/group-buying-order', 
     component: () => import('../pages/GroupBuyingOrder.vue') 
   },
   { 
-    path: '/order-simulator', 
-    component: () => import('../pages/OrderSimulator.vue') 
+    path: '/order-verification', 
+    component: () => import('../pages/OrderVerification.vue') 
   },
   { 
-    path: '/products/:id', 
-    component: () => import('../pages/ProductDetail.vue') 
+    path: '/merchant-dashboard', 
+    component: () => import('../pages/MerchantDashboard.vue') 
+  },
+  { 
+    path: '/mobile-simulator', 
+    component: () => import('../pages/MobileSimulator.vue') 
+  },
+  { 
+    path: '/simple-mobile-debug', 
+    component: () => import('../pages/SimpleMobileDebug.vue') 
+  },
+  { 
+    path: '/order-simulator', 
+    component: () => import('../pages/OrderSimulator.vue') 
   },
   { 
     path: '/debug', 
@@ -48,6 +90,16 @@ const routes = [
   { 
     path: '/simple-debug', 
     component: () => import('../pages/SimpleDebug.vue') 
+  },
+  
+  // 重定向处理
+  { 
+    path: '/product', 
+    redirect: '/products' 
+  },
+  { 
+    path: '/products', 
+    redirect: '/index' 
   },
 ];
 

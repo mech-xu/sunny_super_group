@@ -5,7 +5,7 @@
       <div class="page-content">
         <header class="page-header">
           <h1>验证身份</h1>
-          <p>请输入您的姓名</p>
+          <p>请输入您的团购群微信昵称</p>
         </header>
         <div class="auth-form">
           <form @submit.prevent="handleSubmit" class="form-container">
@@ -14,8 +14,8 @@
               <div class="phone-display">+1 {{ phone }}</div>
             </div>
             <div class="form-group">
-              <label for="name">姓名</label>
-              <input id="name" type="text" v-model="name" placeholder="请输入姓名" required />
+              <label for="name">团购群微信昵称</label>
+              <input id="name" type="text" v-model="name" placeholder="请输入团购群微信昵称" required />
             </div>
             <button type="submit" class="submit-btn" :disabled="!canSubmit">提交</button>
           </form>
@@ -58,7 +58,7 @@ export default {
           username: `user_${phoneNumber}`
         }
 
-        // 使用apiClient发送POST请求
+        // 首先尝试调用后端API
         const response = await apiClient.post('/users', newUser, {
           headers: {
             'Prefer': 'return=representation'
@@ -70,15 +70,49 @@ export default {
           // 将用户信息保存到localStorage作为当前用户
           localStorage.setItem('currentUser', JSON.stringify(Array.isArray(userData) ? userData[0] : userData))
           
-          // 注册成功后跳转到产品页面
-          router.push('/products')
+          // 注册成功后跳转到首页
+          router.push('/index')
         } else {
           console.error('注册失败:', response.status)
           alert('注册失败，请重试')
         }
       } catch (error) {
-        console.error('注册过程中出现错误:', error)
-        alert('注册过程中出现错误，请重试')
+        console.error('注册过程中出现错误:', error);
+        // API调用失败时，降级到使用localStorage
+        handleRegistrationWithLocalStorage(phoneNumber, userName, router);
+      }
+    }
+    
+    // 降级处理：使用localStorage存储用户数据
+    const handleRegistrationWithLocalStorage = (phoneNumber, userName, router) => {
+      // 检查是否为特殊商家管理员用户
+      const isMerchantAdmin = phoneNumber === '4161234567' && userName === '阳光后台';
+      
+      console.log('注册检查 - 手机号:', phoneNumber);
+      console.log('注册检查 - 昵称:', userName);
+      console.log('注册检查 - 是否为商家管理员:', isMerchantAdmin);
+      
+      const newUser = {
+        id: 'user_' + Date.now(),
+        phone: '+1' + phoneNumber,
+        nickname: userName,
+        role: isMerchantAdmin ? 'merchant' : 'customer',
+        role_new: isMerchantAdmin ? 'merchant' : 'customer',
+        username: `user_${phoneNumber}`
+      };
+      
+      console.log('创建新用户:', newUser);
+      
+      // 保存当前用户
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      
+      // 根据用户角色跳转到不同页面
+      if (isMerchantAdmin) {
+        console.log('跳转到商户管理页面');
+        router.push('/merchant-dashboard');
+      } else {
+        console.log('跳转到首页');
+        router.push('/index');
       }
     }
 

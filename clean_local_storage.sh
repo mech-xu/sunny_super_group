@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Script to clean frontend localStorage data for fresh registration
+# This script will clear all local storage data that might interfere with re-registration
+
+echo "Cleaning frontend localStorage data..."
+
+# Since localStorage is browser-based, we'll create a simple HTML file to clear it
+cat > /Users/sunny/sunnynow_local/clean_local_storage.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>清理本地存储</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        button { padding: 10px 20px; font-size: 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #c82333; }
+        .success { color: green; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>清理本地存储数据</h1>
+        <p>点击下面的按钮清除所有本地存储的用户数据、购物车和订单信息。</p>
+        <button onclick="clearLocalStorage()">清理本地存储</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function clearLocalStorage() {
+            // 清除所有相关数据
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('allUsers');
+            localStorage.removeItem('cart');
+            
+            // 显示成功消息
+            document.getElementById('result').innerHTML = '<p class="success">✅ 本地存储数据已清理完成！</p>';
+            
+            // 可选：刷新页面或跳转到登录页
+            setTimeout(() => {
+                window.location.href = '/auth';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
+EOF
+
+echo "清理脚本已创建: /Users/sunny/sunnynow_local/clean_local_storage.html"
+echo ""
+echo "使用方法:"
+echo "1. 在浏览器中打开这个HTML文件"
+echo "2. 点击'清理本地存储'按钮"
+echo "3. 系统会自动跳转到登录页面，您可以重新注册"
+echo ""
+echo "或者您也可以手动在浏览器开发者工具中执行以下命令:"
+echo "localStorage.removeItem('currentUser');"
+echo "localStorage.removeItem('allUsers');"
+echo "localStorage.removeItem('cart');"

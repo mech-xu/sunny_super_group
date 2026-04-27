@@ -1,0 +1,116 @@
+import { createRouter, createWebHistory } from 'vue-router';
+
+const routes = [
+  // 首页
+  { 
+    path: '/', 
+    redirect: '/index'
+  },
+  { 
+    path: '/index', 
+    component: () => import('../pages/index.vue') 
+  },
+  
+  // 商品相关页面
+  { 
+    path: '/goods', 
+    component: () => import('../pages/goods/index.vue') 
+  },
+  { 
+    path: '/goods/detail', 
+    component: () => import('../pages/goods/detail.vue') 
+  },
+  
+  // 购物车页面
+  { 
+    path: '/cart', 
+    component: () => import('../pages/CartDetails.vue') 
+  },
+  
+  // 订单相关页面
+  { 
+    path: '/order/create', 
+    component: () => import('../pages/order/create.vue') 
+  },
+  
+  // 个人中心页面
+  { 
+    path: '/user', 
+    component: () => import('../pages/user/index.vue') 
+  },
+  
+  // 认证相关页面
+  { 
+    path: '/auth', 
+    component: () => import('../pages/Auth.vue') 
+  },
+  { 
+    path: '/register', 
+    component: () => import('../pages/Register.vue') 
+  },
+  
+  // 管理员登录页面
+  { 
+    path: '/admin-login', 
+    component: () => import('../pages/AdminLogin.vue') 
+  },
+  
+  // 其他页面（保留用于调试）
+  { 
+    path: '/profile', 
+    component: () => import('../pages/Profile.vue') 
+  },
+  { 
+    path: '/my-orders', 
+    component: () => import('../pages/MyOrders.vue') 
+  },
+  { 
+    path: '/group-buying-order', 
+    component: () => import('../pages/GroupBuyingOrder.vue') 
+  },
+  { 
+    path: '/order-verification', 
+    component: () => import('../pages/OrderVerification.vue') 
+  },
+  { 
+    path: '/merchant-dashboard', 
+    component: () => import('../pages/MerchantDashboard.vue') 
+  },
+  { 
+    path: '/mobile-simulator', 
+    component: () => import('../pages/MobileSimulator.vue') 
+  },
+  { 
+    path: '/simple-mobile-debug', 
+    component: () => import('../pages/SimpleMobileDebug.vue') 
+  },
+  { 
+    path: '/order-simulator', 
+    component: () => import('../pages/OrderSimulator.vue') 
+  },
+  { 
+    path: '/debug', 
+    component: () => import('../pages/DebugPanel.vue') 
+  },
+  { 
+    path: '/simple-debug', 
+    component: () => import('../pages/SimpleDebug.vue') 
+  },
+  
+  // 重定向处理
+  { 
+    path: '/product', 
+    redirect: '/products' 
+  },
+  { 
+    path: '/products', 
+    redirect: '/index' 
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+export default router;

@@ -1,356 +1,374 @@
 <template>
-  <div class="cart-container">
-    <div class="iphone-frame">
-      <div class="notch"></div>
-      
-      <div class="page-content">
-        <header class="page-header">
-          <button @click="goBack" class="back-btn">←</button>
-          <h1>购物车</h1>
-          <div class="empty-cart" v-if="cartItems.length === 0">
-            <p>购物车为空</p>
-          </div>
-        </header>
+  <div class="cart-page">
+    <iPhoneFrame>
+      <!-- 顶部导航栏 -->
+      <SimpleHeader title="购物车" :showBack="true" @back="goBack">
+        <template #right>
+          <button @click="goToHome" class="home-btn">🏠</button>
+        </template>
+      </SimpleHeader>
 
-        <div class="cart-items" v-if="cartItems.length > 0">
+      <main class="main-content">
+        <!-- 空购物车状态 -->
+        <div v-if="cartItems.length === 0" class="empty-cart">
+          <div class="empty-icon">🛒</div>
+          <p class="empty-text">购物车是空的</p>
+          <button @click="goToHome" class="go-home-btn">去逛逛</button>
+        </div>
+
+        <!-- 购物车商品列表 -->
+        <div v-else class="cart-items">
           <div 
-            class="cart-item" 
             v-for="(item, index) in cartItems" 
-            :key="index"
+            :key="index" 
+            class="cart-item"
           >
-            <div class="item-image">
-              <img :src="item.product.image || 'https://placehold.co/100x100?text=No+Image'" :alt="item.product.name" />
-            </div>
-            <div class="item-details">
-              <h3>{{ item.product.name }}</h3>
-              <p class="price">CAD ${{ item.product.price }}</p>
+            <img :src="item.product.image" :alt="item.product.name" class="product-image" />
+            
+            <div class="product-info">
+              <h3 class="product-name">{{ item.product.name }}</h3>
+              <p class="product-price">CAD${{ item.product.price.toFixed(2) }}</p>
               
               <div class="quantity-controls">
                 <button @click="decreaseQuantity(item)" class="quantity-btn">-</button>
                 <span class="quantity-value">{{ item.quantity }}</span>
                 <button @click="increaseQuantity(item)" class="quantity-btn">+</button>
               </div>
-              
-              <div class="item-total">
-                小计: CAD ${{ (item.product.price * item.quantity).toFixed(2) }}
-              </div>
             </div>
           </div>
-        </div>
 
-        <div class="cart-summary" v-if="cartItems.length > 0">
-          <div class="summary-row">
-            <span>商品总数:</span>
-            <span>{{ totalItems }} 件</span>
-          </div>
-          <div class="summary-row">
-            <span>总计:</span>
-            <span>CAD ${{ totalPrice.toFixed(2) }}</span>
+          <!-- 购物车总计 -->
+          <div v-if="cartItems.length > 0" class="cart-summary">
+            <div class="summary-row">
+              <span>商品总数:</span>
+              <span>{{ totalItems }} 件</span>
+            </div>
+            <div class="summary-row">
+              <span>总计:</span>
+              <span class="total-price">CAD${{ totalPrice.toFixed(2) }}</span>
+            </div>
+            
+            <button @click="proceedToGroupOrder" class="checkout-btn">
+              到店自提下单
+            </button>
           </div>
         </div>
+      </main>
 
-        <div class="cart-actions" v-if="cartItems.length > 0">
-          <button @click="clearCart" class="clear-btn">清空购物车</button>
-          <button @click="proceedToCheckout" class="checkout-btn">去结算</button>
-        </div>
-      </div>
-      
-      <div class="home-indicator"></div>
-    </div>
+      <SimpleFooter :activeTab="'cart'" @tab-change="handleTabChange" />
+    </iPhoneFrame>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'CartDetails',
-  data() {
-    return {
-      cartItems: []
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import iPhoneFrame from '../components/iPhoneFrame.vue';
+import SimpleHeader from '../components/SimpleHeader.vue';
+import SimpleFooter from '../components/SimpleFooter.vue';
+import { api } from '../api.js';
+
+const router = useRouter();
+const cartItems = ref([]);
+const currentUser = ref(null);
+
+// 计算总数量和总价
+const totalItems = computed(() => {
+  return cartItems.value.reduce((total, item) => total + item.quantity, 0);
+});
+
+const totalPrice = computed(() => {
+  return cartItems.value.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+});
+
+// 获取购物车商品详情
+const loadCartItems = async () => {
+  try {
+    const storedCart = localStorage.getItem('cart');
+    if (!storedCart) {
+      cartItems.value = [];
+      return;
     }
-  },
-  computed: {
-    totalItems() {
-      // 计算购物车总数量
-      return this.cartItems.reduce((total, item) => total + item.quantity, 0);
-    },
-    totalPrice() {
-      // 计算购物车总价
-      return this.cartItems.reduce((total, item) => {
-        return total + (item.product.price * item.quantity);
-      }, 0);
+
+    const cartData = JSON.parse(storedCart);
+    const productIds = Object.keys(cartData);
+    
+    if (productIds.length === 0) {
+      cartItems.value = [];
+      return;
     }
-  },
-  created() {
-    this.loadCart();
-  },
-  methods: {
-    loadCart() {
-      // 从localStorage加载购物车数据
-      const cartData = localStorage.getItem('cart');
-      if (cartData) {
-        this.cartItems = JSON.parse(cartData);
-      }
-    },
-    increaseQuantity(item) {
-      // 增加商品数量
-      item.quantity++;
-      this.saveCart();
-    },
-    decreaseQuantity(item) {
-      // 减少商品数量，最少为1
-      if (item.quantity > 1) {
-        item.quantity--;
-      } else {
-        // 如果数量已经是1，则询问用户是否要删除商品
-        if (confirm('确定要从购物车中移除该商品吗？')) {
-          this.removeItem(item);
-        }
-        return;
-      }
-      this.saveCart();
-    },
-    removeItem(item) {
-      // 从购物车中移除商品
-      const index = this.cartItems.indexOf(item);
-      if (index !== -1) {
-        this.cartItems.splice(index, 1);
-        this.saveCart();
-      }
-    },
-    clearCart() {
-      // 清空购物车
-      if (confirm('确定要清空整个购物车吗？')) {
-        this.cartItems = [];
-        this.saveCart();
-      }
-    },
-    saveCart() {
-      // 保存购物车数据到localStorage
-      localStorage.setItem('cart', JSON.stringify(this.cartItems));
-    },
-    goBack() {
-      this.$router.go(-1);
-    },
-    proceedToCheckout() {
-      // 跳转到订单预览页面
-      this.$router.push('/order-preview');
-    }
+
+    // 获取所有商品的最新信息
+    const allProducts = await api.getProducts();
+    const validProducts = allProducts.filter(product => 
+      productIds.includes(product.id) && product.status !== false
+    );
+
+    // 构建购物车项目
+    cartItems.value = validProducts.map(product => ({
+      product: {
+        ...product,
+        price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+        image: product.image || 'https://placehold.co/100x100?text=No+Image',
+        name: product.name || '未知商品'
+      },
+      quantity: cartData[product.id] || 1
+    }));
+
+    // 更新localStorage，移除无效商品
+    const updatedCart = {};
+    cartItems.value.forEach(item => {
+      updatedCart[item.product.id] = item.quantity;
+    });
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+
+  } catch (error) {
+    console.error('加载购物车商品失败:', error);
+    cartItems.value = [];
   }
-}
+};
+
+// 减少商品数量
+const decreaseQuantity = (item) => {
+  if (item.quantity <= 1) {
+    // 移除商品
+    cartItems.value = cartItems.value.filter(i => i.product.id !== item.product.id);
+    updateCartStorage();
+  } else {
+    item.quantity--;
+    updateCartStorage();
+  }
+};
+
+// 增加商品数量
+const increaseQuantity = (item) => {
+  item.quantity++;
+  updateCartStorage();
+};
+
+// 更新购物车存储
+const updateCartStorage = () => {
+  const cartData = {};
+  cartItems.value.forEach(item => {
+    cartData[item.product.id] = item.quantity;
+  });
+  localStorage.setItem('cart', JSON.stringify(cartData));
+};
+
+// 跳转到团购订单页面
+const proceedToGroupOrder = () => {
+  if (cartItems.value.length === 0) return;
+  
+  // 确保有用户登录
+  const storedUser = localStorage.getItem('currentUser');
+  if (!storedUser || storedUser === 'null' || storedUser === 'undefined') {
+    router.push('/auth');
+    return;
+  }
+  
+  router.push('/group-buying-order');
+};
+
+// 导航方法
+const goBack = () => {
+  router.go(-1);
+};
+
+const goToHome = () => {
+  router.push('/');
+};
+
+const handleTabChange = (tabName) => {
+  if (tabName === 'home') {
+    router.push('/');
+  } else if (tabName === 'goods') {
+    router.push('/goods');
+  } else if (tabName === 'cart') {
+    // 已在购物车页面
+  } else if (tabName === 'user') {
+    router.push('/user');
+  }
+};
+
+// 初始化页面
+onMounted(async () => {
+  try {
+    // 获取当前用户
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
+      try {
+        currentUser.value = JSON.parse(storedUser);
+      } catch (parseError) {
+        console.error('解析用户数据失败:', parseError);
+        currentUser.value = null;
+        localStorage.removeItem('currentUser');
+      }
+    } else {
+      currentUser.value = null;
+    }
+    
+    if (!currentUser.value) {
+      router.push('/auth');
+      return;
+    }
+    
+    // 加载购物车商品
+    await loadCartItems();
+    
+  } catch (error) {
+    console.error('初始化购物车页面失败:', error);
+    router.push('/auth');
+  }
+});
 </script>
 
 <style scoped>
-.cart-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 20px;
+.cart-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.iphone-frame {
-  width: 100%;
-  max-width: 480px;
-  height: 100vh;
-  background: white;
-  border-radius: 40px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
+.main-content {
+  padding: 16px 0;
+  min-height: calc(100vh - 120px);
 }
 
-.notch {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 160px;
-  height: 20px;
-  background: black;
-  border-radius: 0 0 20px 20px;
-  z-index: 10;
-}
-
-.page-content {
-  padding-top: 40px;
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  padding: 10px 20px;
-  border-bottom: 1px solid #eee;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.page-header h1 {
-  flex: 1;
-  text-align: center;
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
+/* 空购物车样式 */
 .empty-cart {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   text-align: center;
-  color: #888;
+  padding: 60px 16px 80px;
+  color: #999;
 }
 
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 18px;
+  margin: 0 0 24px 0;
+  color: #666;
+}
+
+.go-home-btn {
+  background: #07c160;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.go-home-btn:hover {
+  background: #06a852;
+}
+
+/* 购物车商品列表 */
 .cart-items {
-  padding: 15px;
-  flex: 1;
+  padding: 0 16px;
 }
 
 .cart-item {
   display: flex;
-  background: white;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+  align-items: flex-start;
 }
 
-.item-image {
+.product-image {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-right: 15px;
-  flex-shrink: 0;
-}
-
-.item-image img {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
+  border-radius: 8px;
+  margin-right: 16px;
 }
 
-.item-details {
+.product-info {
   flex: 1;
 }
 
-.item-details h3 {
+.product-name {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 500;
 }
 
-.price {
-  margin: 0 0 10px 0;
+.product-price {
   color: #e74c3c;
   font-weight: bold;
+  margin-bottom: 12px;
 }
 
 .quantity-controls {
   display: flex;
   align-items: center;
-  margin: 10px 0;
+  gap: 8px;
 }
 
 .quantity-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
   border: 1px solid #ddd;
-  background: white;
+  background: #f8f9fa;
+  border-radius: 4px;
   font-size: 16px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
 }
 
 .quantity-value {
-  margin: 0 15px;
-  min-width: 20px;
+  min-width: 24px;
   text-align: center;
+  font-weight: 500;
 }
 
-.item-total {
-  font-weight: bold;
-  color: #2c3e50;
-  font-size: 14px;
-}
-
+/* 购物车总计 */
 .cart-summary {
-  background: white;
-  padding: 15px 20px;
-  margin: 0 15px 15px 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  padding: 20px 16px 0;
+  border-top: 1px solid #eee;
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+  font-size: 16px;
 }
 
-.summary-row:last-child {
-  border-bottom: none;
-  font-weight: bold;
+.total-price {
   color: #e74c3c;
+  font-weight: bold;
   font-size: 18px;
 }
 
-.cart-actions {
-  display: flex;
-  gap: 10px;
-  padding: 0 15px 20px 15px;
-}
-
-.clear-btn, .checkout-btn {
-  flex: 1;
-  padding: 15px;
-  border-radius: 10px;
+.checkout-btn {
+  width: 100%;
+  padding: 14px;
+  background: #07c160;
+  color: white;
   border: none;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
+  margin-top: 20px;
+  transition: background 0.2s ease;
 }
 
-.clear-btn {
-  background: #ecf0f1;
-  color: #e74c3c;
+.checkout-btn:hover {
+  background: #06a852;
 }
 
-.checkout-btn {
-  background: #07c160;
-  color: white;
-}
-
-.home-indicator {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 130px;
-  height: 5px;
-  background: black;
-  border-radius: 5px;
+.home-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #333;
+  cursor: pointer;
+  padding: 4px;
 }
 </style>
