@@ -122,10 +122,9 @@ onMounted(async () => {
         if (localUser.phone) {
           try {
             // 从后端API获取真实用户数据
-            const encodedPhone = encodeURIComponent(localUser.phone);
-            const userDataResponse = await apiClient.get(`/users?phone=eq.${encodedPhone}`);
-            if (userDataResponse.data && userDataResponse.data.length > 0) {
-              currentUser.value = userDataResponse.data[0];
+            const userData = await api.getUserByPhone(localUser.phone);
+            if (userData) {
+              currentUser.value = userData;
               // 更新localStorage中的用户数据
               localStorage.setItem('currentUser', JSON.stringify(currentUser.value));
               customerName.value = currentUser.value.nickname || '';

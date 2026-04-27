@@ -226,6 +226,18 @@ export const api = {
     }
   },
 
+  // 获取用户信息（通过手机号）
+  getUserByPhone: async (phone) => {
+    try {
+      const encodedPhone = encodeURIComponent(phone);
+      const response = await apiClient.get(`/users?phone=eq.${encodedPhone}`);
+      return response.data && response.data.length > 0 ? response.data[0] : null;
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      return null;
+    }
+  },
+
   // 获取指定商户的商品列表
   getProductsByMerchant: async (merchantId) => {
     try {
