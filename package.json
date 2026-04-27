@@ -13,6 +13,7 @@
     "ci": "npm run lint && npm test && npm run build",
     "debug:deployment": "node scripts/debug-deployment.js",
     "validate:apis": "node scripts/validate-api-calls.js",
+    "opencli": "node scripts/opencli-integration.js",
     "deploy:pages": "cd frontend && wrangler pages deploy dist",
     "deploy:workers": "wrangler deploy"
   },
@@ -20,7 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.15.2",
-    "dotenv": "^17.4.2"
+    "axios": "^1.6.0",
+    "dotenv": "^16.4.5"
   }
 }

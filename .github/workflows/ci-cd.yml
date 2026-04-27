@@ -44,6 +44,27 @@ jobs:
       - name: Run tests
         run: npm test || echo "No tests configured"
         
+  opencli-validate:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: cd frontend && npm ci
+        
+      - name: Install OpenCLI
+        run: npm install -g opencli
+        
+      - name: Run OpenCLI CI validation
+        run: npm run opencli ci-validate
+        continue-on-error: true # OpenCLI验证失败不阻断构建
+        
   build:
     runs-on: ubuntu-latest
     needs: [lint, test]
