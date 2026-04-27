@@ -1,12 +1,18 @@
 <template>
   <div id="app">
     <router-view/>
+    <ApiValidator v-if="import.meta.env.DEV" />
   </div>
 </template>
 
 <script>
+import ApiValidator from './components/ApiValidator.vue';
+
 export default {
-  name: 'App'
+  name: 'App',
+  components: {
+    ApiValidator
+  }
 }
 </script>
 
