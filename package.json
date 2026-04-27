@@ -10,9 +10,15 @@
     "lint:fix": "cd frontend && npm run lint:fix",
     "format": "cd frontend && npx prettier --write .",
     "test": "echo \"No tests configured\"",
-    "ci": "npm run lint && npm test && npm run build"
+    "ci": "npm run lint && npm test && npm run build",
+    "debug:deployment": "node scripts/debug-deployment.js",
+    "deploy:pages": "cd frontend && wrangler pages deploy dist",
+    "deploy:workers": "wrangler deploy"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
 }

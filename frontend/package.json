@@ -11,6 +11,7 @@
     "lint:fix": "eslint . --ext .js,.vue --fix"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
     "axios": "^1.6.0",
     "qrcode": "^1.5.4",
     "vue": "^3.4.0",

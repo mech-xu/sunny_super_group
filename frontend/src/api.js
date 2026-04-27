@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-// 默认超时时间
-const DEFAULT_TIMEOUT = 10000;
-
-// 使用环境变量配置API
+// 使用Cloudflare环境变量或本地环境变量
 const API_CONFIG = {
-  baseURL: window.location.origin + (import.meta.env.VITE_API_BASE_PATH || '/api'),
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || DEFAULT_TIMEOUT,
-  apiKey: import.meta.env.VITE_API_KEY || 'anon'
+  // 在Cloudflare Pages中，API基础路径为空，直接调用Supabase
+  baseURL: import.meta.env.VITE_SUPABASE_URL 
+    ? `${import.meta.env.VITE_SUPABASE_URL}/rest/v1`
+    : window.location.origin + (import.meta.env.VITE_API_BASE_PATH || '/api'),
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
+  apiKey: import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_API_KEY || 'anon'
 };
 
 const apiClient = axios.create({
@@ -15,7 +15,7 @@ const apiClient = axios.create({
   timeout: API_CONFIG.timeout,
   headers: {
     'Content-Type': 'application/json',
-    'apikey': API_CONFIG.apiKey, 
+    'apikey': API_CONFIG.apiKey,
   }
 });
 
